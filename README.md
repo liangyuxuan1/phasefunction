@@ -14,4 +14,7 @@ Prof. Ge Wang: *We can “invert” M-C simulation (which can be CW, frequency-m
 
 Reference of H-G function: [HG_Note](https://www.astro.umd.edu/~jph/HG_note.pdf)
 
+Steven Jacques, Scott Prahl, [Introduction to Biomedical Optics](https://omlc.org/classroom/ece532/), Course of Oregon Graduate Institute
+
+
 
