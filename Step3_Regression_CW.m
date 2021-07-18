@@ -14,14 +14,14 @@ trainDataCSV = 'imageCW_FixedG_500\trainDataCW.csv';
 trainDataTable = readtable( trainDataCSV, 'Delimiter', ',' );
 trainImageList = fullfile(pwd, 'imageCW_FixedG_500', trainDataTable.image);
 trainImds = imageDatastore(trainImageList, 'LabelSource', 'foldernames', 'FileExtensions', '.mat', 'ReadFcn', @load );
-[XTrain, ~] = imds2array_ljm(trainImds);
+[XTrain, ~] = imds2array(trainImds);
 YTrain = trainDataTable.g;
 
 testDataCSV = 'imageCW_FixedG_500\testDataCW.csv';
 testDataTable = readtable( testDataCSV, 'Delimiter', ',' );
 testImageList = fullfile(pwd, 'imageCW_FixedG_500', testDataTable.image);
 testImds = imageDatastore(testImageList, 'LabelSource', 'foldernames', 'FileExtensions', '.mat', 'ReadFcn', @load );
-[XValidation, ~] = imds2array_ljm(testImds);
+[XValidation, ~] = imds2array(testImds);
 YValidation = testDataTable.g;
 
 % Display 20 random training images using imshow.
