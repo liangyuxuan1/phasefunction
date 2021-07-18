@@ -42,3 +42,7 @@ References:
 The command line MOSE program is located in /MOSE along with the dependency runtime libraries. The phantom and simulation parameters are listed in the "mse" config file. Some parameters, such as the absorption coefficient $\mu_a$, scattering coefficient $\mu_s$, anisotropy factor $g$ of H-G function, and refractive index $n$, can be overridden by command line parameters. 
 
 `` moseVCTest.exe configFileName outputDataFileName mu_a mu_s g n``
+
+I wrote a MATLAB program ([Step1_GenerateRawData_CW.m](Step1_GenerateRawData_CW.m)) to simulate light propagation in a homogeneous slab tissue with typical optical parameters of $u_a=0.05$, $u_s=10$, and $n=1.3$. The anisotropy factor $g$ varies from -1 to 1 with a step of 0.025. For each g value, MOSE was run 100 times to generate train data for the neural network, and 30 times to generate the test data. 
+
+Since MOSE saves all the side view observations of the slab, another MATLAB program ([Step2_ChangeRawData2Mat_CW.m](Step2_ChangeRawData2Mat_CW.m)) was written to extract only the top view observations. The results are saved in mat format to maintain the data accuracy. 
