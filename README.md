@@ -6,13 +6,36 @@ Started from May, 2021.
 
 ## Objective
 
-Building a phase function model for light propogation in medium using machine learning methods. 
+Building a phase function model for light propagation in medium using machine learning methods. 
 
 Prof. Ge Wang: *We can “invert” M-C simulation (which can be CW, frequency-modulated, or time-resolved) to fit the underlying phase function for a homogeneous slab tissue: 1) simulate with HG phase functions with various parameters, and then learn from data so that we have a HG phase function equivalent network model, and 2) in MOSE we perturb the HG phase function and produce simulated data again, and then the network model can fit into the perturbed phase function.*  
 
-## Henyey and Greenstein (H-G) phase function 
+## Background
+
+### Henyey and Greenstein (H-G) phase function 
 
 Reference of H-G function: [HG_Note](https://www.astro.umd.edu/~jph/HG_note.pdf)
 
 Steven Jacques, Scott Prahl, [Introduction to Biomedical Optics](https://omlc.org/classroom/ece532/), Course of Oregon Graduate Institute
+
+### Molecular Optical Simulation Environment (MOSE)
+
+[MOSE](http://www.radiomics.net.cn/platform/docs/4) is a software platform for the simulation of light propagation in turbid media. The development of MOSE was initiated by Prof. Ge Wang and his collaborators. In this project, I use a modified command line version of MOSE provided by Dr. Shenghan Ren, the former team leader of MOSE. 
+
+References:
+
+1. Shenghan Ren, Xueli Chen, Hailong Wang, Xiaochao Qu, Ge Wang, Jimin Liang, and Jie Tian, Molecular Optical Simulation Environment (MOSE): A Platform for the Simulation of Light Propagation in Turbid Media, Plos One, 8(4):e61304, 2013.
+2. Shenghan Ren, A Study on Efficient Method for Optical Tomography, Ph.D thesis, Xidian University, 2016. (In Chinese)
+
+## Methods
+
+### Development Environment 
+    - Windows 10
+    - Cuda 10.2
+    - Matlab 2020b
+    - Python 3.8
+    - Pytorch 1.8.1
+
+### Data Generation
+
 
