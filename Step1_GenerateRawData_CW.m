@@ -1,7 +1,7 @@
 clear all;
 clc;
 
-phantomFile = 'newProject_CW_200.mse';
+phantomFile = 'newProject_CW_500.mse';
 
 % parameter range, refer to: Brett H. Hokr1 and Joel N. Bixler2, Machine
 % learning estimation of tissue optical properties, Scientific Reports,
@@ -9,7 +9,7 @@ phantomFile = 'newProject_CW_200.mse';
 ua = 0.05;      % absorption coefficient, [0.01, 10] mm^-1
 us = 10;        % scattering coefficient, [0.1, 100] mm^-1
 n  = 1.3;       % refractive index, no need to vary for single layer slab
-g  = [0.5:0.01:0.95];    % anistropic scattering coefficient of HG function
+g  = [-1:0.025:1];    % anistropic scattering coefficient of HG function
 trainNum = 70;           % training number of runs (images) for each set of parameters
 testNum  = 30;           % testing number of runs (images) for each set of parameters
 
