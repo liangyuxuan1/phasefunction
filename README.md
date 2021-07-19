@@ -46,3 +46,6 @@ The command line MOSE program is located in /MOSE along with the dependency runt
 I wrote a MATLAB program ([Step1_GenerateRawData_CW.m](Step1_GenerateRawData_CW.m)) to simulate light propagation in a homogeneous slab tissue with typical optical parameters of $u_a=0.05$, $u_s=10$, and $n=1.3$. The anisotropy factor $g$ varies from -1 to 1 with a step of 0.025. For each g value, MOSE was run 100 times to generate train data for the neural network, and 30 times to generate the test data. 
 
 Since MOSE saves all side-view observations of the slab, another MATLAB program ([Step2_ChangeRawData2Mat_CW.m](Step2_ChangeRawData2Mat_CW.m)) was written to extract only the top-view observations. The results are saved in mat format to maintain the data accuracy. 
+
+### Regression Anisotropy Factor using Neural Network
+

@@ -1,8 +1,8 @@
 clear all;
 clc;
 
-srcDataPath = 'rawDataCW_FixedG_500';   % path to the raw simulation results
-dstDataPath = 'imageCW_FixedG_500';     % path to store the images
+srcDataPath = 'rawDataCW';   % path to the raw simulation results
+dstDataPath = 'imageCW';     % path to store the images
 if ~exist(dstDataPath, 'dir')
     mkdir(dstDataPath);
 end
