@@ -65,17 +65,18 @@ class CustomImageDataset(Dataset):
 
 # TRICK ONE to improve the performance: standardize the data.
 # Need to calculate the mean and std of the dataset first.
-# imageCW_FixedG_500, mean = 0.0050, std = 0.3737
+# imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
+# imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
 training_data = CustomImageDataset(
     annotations_file = "trainDataCW.csv",
-    img_dir="imageCW_FixedG_500",
-    transform = transforms.Normalize(0.0050, 0.3737)
+    img_dir="imageCW",
+    transform = transforms.Normalize(0.0068, 1.2836)
 )
 
 test_data = CustomImageDataset(
     annotations_file = "testDataCW.csv",
-    img_dir="imageCW_FixedG_500",
-    transform = transforms.Normalize(0.0050, 0.3737)
+    img_dir="imageCW",
+    transform = transforms.Normalize(0.0068, 1.2836)
 )
 
 figure = plt.figure(figsize=(8, 8))
@@ -87,7 +88,7 @@ for i in range(1, cols * rows + 1):
     figtitle = 'g=%.2f'%label
     plt.title(figtitle)
     plt.axis("off")
-    plt.imshow(np.log(img.squeeze()+1), cmap="gray")
+    plt.imshow(np.log(np.log(img.squeeze()+1)+1), cmap="hot")
 plt.show()
 
 # We pass the Dataset as an argument to DataLoader. 
@@ -237,7 +238,7 @@ def test(dataloader, model, loss_fn):
 # https://zhuanlan.zhihu.com/p/103630393 , this works
 # 不要安装pytorch profiler, 如果安装了，pip uninstall torch-tb-profiler. 否则tensorboard load 数据有问题
 from torch.utils.tensorboard import SummaryWriter 
-writer = SummaryWriter('Step3_Regression_CW')
+writer = SummaryWriter('training_results')
 
 import time
 since = time.time()

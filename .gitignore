@@ -11,7 +11,7 @@ $RECYCLE.BIN/
 # User Ingore
 rawDataCW*/
 imageCW*/
-Step3_Regression_CW/
+training_results/
 .vscode/
 .ipynb_checkpoints/
 *.pth
