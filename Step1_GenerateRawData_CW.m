@@ -10,7 +10,7 @@ ua = 0.05;      % absorption coefficient, [0.01, 10] mm^-1
 us = 10;        % scattering coefficient, [0.1, 100] mm^-1
 n  = 1.3;       % refractive index, no need to vary for single layer slab
 g  = [-1:0.025:1];    % anistropic scattering coefficient of HG function
-trainNum = 70;           % training number of runs (images) for each set of parameters
+trainNum = 100;           % training number of runs (images) for each set of parameters
 testNum  = 30;           % testing number of runs (images) for each set of parameters
 
 dataPath = 'rawDataCW';   % path to store the raw simulation results
