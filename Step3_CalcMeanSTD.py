@@ -39,7 +39,7 @@ class CustomImageDataset(Dataset):
 
 training_data = CustomImageDataset(
     annotations_file = "trainDataCW.csv",
-    img_dir="imageCW_FixedG_500"
+    img_dir="imageCW"
 )
 
 # Refer to：https://blog.csdn.net/peacefairy/article/details/108020179
@@ -53,7 +53,9 @@ print(mean)
 print(std)
 
 # Results
-# imageCW_FixedG_500, mean = 0.0050, std = 0.3737
+# imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
+# imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
+
 
 # ===============================================================
 # If there are too many images to load into memory in one batch
