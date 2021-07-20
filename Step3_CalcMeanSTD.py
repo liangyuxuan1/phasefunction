@@ -28,6 +28,7 @@ class CustomImageDataset(Dataset):
         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0]) # 0: filename
         # image = read_image(img_path)
         image = io.loadmat(img_path).get('rawData')
+        image = image.astype(np.float64)        
         h, w = image.shape
         image = torch.from_numpy(image).reshape(1, h, w)
         image = image.float()
