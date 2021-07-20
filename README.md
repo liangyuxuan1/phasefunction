@@ -47,5 +47,11 @@ I wrote a MATLAB program ([Step1_GenerateRawData_CW.m](Step1_GenerateRawData_CW.
 
 Since MOSE saves all side-view observations of the slab, another MATLAB program ([Step2_ChangeRawData2Mat_CW.m](Step2_ChangeRawData2Mat_CW.m)) was written to extract only the top-view observations. The results are saved in mat format to maintain the data accuracy. 
 
+Some images randomly selected from the training set are shown in the following figures.
+
+![](figures/Figure_1.png)
+
+![](figures/Figure_2.png)
+
 ### Regression Anisotropy Factor using Neural Network
 

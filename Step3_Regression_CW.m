@@ -10,16 +10,16 @@ clc;
 % [XValidation,~,YValidation] = digitTest4DArrayData;
 
 % read the data list
-trainDataCSV = 'imageCW_FixedG_500\trainDataCW.csv';
+trainDataCSV = 'imageCW\trainDataCW.csv';
 trainDataTable = readtable( trainDataCSV, 'Delimiter', ',' );
-trainImageList = fullfile(pwd, 'imageCW_FixedG_500', trainDataTable.image);
+trainImageList = fullfile(pwd, 'imageCW', trainDataTable.image);
 trainImds = imageDatastore(trainImageList, 'LabelSource', 'foldernames', 'FileExtensions', '.mat', 'ReadFcn', @load );
 [XTrain, ~] = imds2array(trainImds);
 YTrain = trainDataTable.g;
 
-testDataCSV = 'imageCW_FixedG_500\testDataCW.csv';
+testDataCSV = 'imageCW\testDataCW.csv';
 testDataTable = readtable( testDataCSV, 'Delimiter', ',' );
-testImageList = fullfile(pwd, 'imageCW_FixedG_500', testDataTable.image);
+testImageList = fullfile(pwd, 'imageCW', testDataTable.image);
 testImds = imageDatastore(testImageList, 'LabelSource', 'foldernames', 'FileExtensions', '.mat', 'ReadFcn', @load );
 [XValidation, ~] = imds2array(testImds);
 YValidation = testDataTable.g;
