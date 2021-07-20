@@ -10,6 +10,8 @@ from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision import transforms
 from torchvision.transforms import ToTensor, Lambda, Compose
+
+# pip install matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import string
@@ -25,11 +27,11 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 # Creating a Custom Dataset for your files
 # A custom Dataset class must implement three functions: __init__, __len__, and __getitem__. 
 
-# conda install pandas
+# pip install pandas
 import pandas as pd
 from torchvision.io import read_image
 
-# conda install scipy
+# pip install scipy
 import scipy.io as io
 
 #data = io.loadmat(fullFileName, variable_names='rawData', mat_dtype=True)
@@ -48,6 +50,7 @@ class CustomImageDataset(Dataset):
         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0]) # 0: filename
         # image = read_image(img_path)
         image = io.loadmat(img_path).get('rawData')
+        image = image.astype(np.float)
         h, w = image.shape
         image = torch.from_numpy(image).reshape(1, h, w)
         image = image.float()
