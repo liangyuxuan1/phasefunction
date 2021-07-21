@@ -49,7 +49,7 @@ for ig = 1:length(g)
         parameters = ['MOSE\moseVCTest.exe', phantomFile, dataFileName, num2str(ua(ig)), num2str(us(ig)), num2str(g(ig)), num2str(n)];
         cmdLine = strjoin(parameters, ' ');
         
-%         system(cmdLine);    % call exe
+        system(cmdLine);    % call exe
         
         % check the results
         %                 dataFileName = strcat(dataFileName, '.T.CW');
