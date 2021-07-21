@@ -70,15 +70,16 @@ class CustomImageDataset(Dataset):
 # Need to calculate the mean and std of the dataset first.
 # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
 # imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
+img_path="imageCW_1"
 training_data = CustomImageDataset(
-    annotations_file = "trainDataCW.csv",
-    img_dir="imageCW",
+    annotations_file = os.path.join(img_path, "trainDataCW.csv"),
+    img_dir = img_path,
     transform = transforms.Normalize(0.0068, 1.2836)
 )
 
 test_data = CustomImageDataset(
-    annotations_file = "testDataCW.csv",
-    img_dir="imageCW",
+    annotations_file = os.path.join(img_path, "testDataCW.csv"),
+    img_dir = img_path,
     transform = transforms.Normalize(0.0068, 1.2836)
 )
 
@@ -227,7 +228,7 @@ def test(dataloader, model, loss_fn):
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
 
-    return test_loss
+    return test_loss, correct
 
 # The training process is conducted over several iterations (epochs). 
 # During each epoch, the model learns parameters to make better predictions. 
@@ -250,10 +251,11 @@ epochs = 10
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
     train_loss = train(train_dataloader, model, loss_fn, optimizer)
-    test_loss  = test(test_dataloader, model, loss_fn)
+    test_loss, correct = test(test_dataloader, model, loss_fn)
 
     writer.add_scalar('Train/Loss', train_loss, t)
     writer.add_scalar('Test/Loss', test_loss, t)
+    writer.add_scalar('Accuracy', correct[0], t)
 writer.close()
 
 time_elapsed = time.time() - since
