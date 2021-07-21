@@ -2,7 +2,7 @@ clear all;
 clc;
 
 srcDataPath = 'rawDataCW';   % path to the raw simulation results
-dstDataPath = 'imageCW';     % path to store the images
+dstDataPath = 'imageCW_2';     % path to store the images
 if ~exist(dstDataPath, 'dir')
     mkdir(dstDataPath);
 end
@@ -23,4 +23,6 @@ for i=1:length(gDirList)
         save(dstImageFileName, 'rawData');
     end % for j, images
 end  % for i, dirlist
+
+copyfile [srcDataPath, filesep, '*.csv'] dstDataPath
 
