@@ -58,5 +58,5 @@ for ia = 1:length(ua)
     end % of is
 end % of ia
 
-writetable(trainTableCW, 'trainDataCW.csv');
-writetable(testTableCW,  'testDataCW.csv');
+writetable(trainTableCW, [dataPath, filesep, 'trainDataCW.csv']);
+writetable(testTableCW,  [dataPath, filesep, 'testDataCW.csv']);
