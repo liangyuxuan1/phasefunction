@@ -2,7 +2,7 @@ clear all;
 clc;
 
 srcDataPath = 'rawDataCW';   % path to the raw simulation results
-dstDataPath = 'imageCW_2';     % path to store the images
+dstDataPath = 'imageCW';     % path to store the images
 if ~exist(dstDataPath, 'dir')
     mkdir(dstDataPath);
 end
