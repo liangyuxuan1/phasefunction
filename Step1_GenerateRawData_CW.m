@@ -14,8 +14,8 @@ ua=table2array(T(:,3));
 g=table2array(T(:,4));
 n  = 1.3;       % refractive index, no need to vary for single layer slab
 % g  = [-1:0.025:1];    % anistropic scattering coefficient of HG function
-trainNum = 100;           % training number of runs (images) for each set of parameters
-testNum  = 30;           % testing number of runs (images) for each set of parameters
+trainNum = 500;           % training number of runs (images) for each set of parameters
+testNum  = 100;           % testing number of runs (images) for each set of parameters
 
 dataPath = 'rawDataCW';   % path to store the raw simulation results
 if ~exist(dataPath,'dir')
