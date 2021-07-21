@@ -38,9 +38,10 @@ class CustomImageDataset(Dataset):
         return image, gt
 
 
+img_path="imageCW_2"
 training_data = CustomImageDataset(
-    annotations_file = "trainDataCW.csv",
-    img_dir="imageCW"
+    annotations_file = os.path.join(img_path, "trainDataCW.csv"),
+    img_dir = img_path
 )
 
 # Refer to：https://blog.csdn.net/peacefairy/article/details/108020179
