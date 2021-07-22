@@ -38,7 +38,7 @@ class CustomImageDataset(Dataset):
         return image, gt
 
 
-img_path="imageCW_2"
+img_path="imageCW"
 training_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "trainDataCW.csv"),
     img_dir = img_path
@@ -57,8 +57,8 @@ print(std)
 # Results
 # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
 # imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
-
-
+# imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, sta = 0.4645
+ 
 # ===============================================================
 # If there are too many images to load into memory in one batch
 train_dataloader = DataLoader(training_data, batch_size=1000)
