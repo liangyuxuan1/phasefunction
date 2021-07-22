@@ -70,30 +70,31 @@ class CustomImageDataset(Dataset):
 # Need to calculate the mean and std of the dataset first.
 # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
 # imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
-img_path="imageCW_1"
+# imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, sta = 0.4645
+img_path="imageCW"
 training_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "trainDataCW.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0068, 1.2836)
+    transform = transforms.Normalize(0.0040, 0.4645)
 )
 
 test_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "testDataCW.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0068, 1.2836)
+    transform = transforms.Normalize(0.0040, 0.4645)
 )
 
-figure = plt.figure(figsize=(8, 8))
-cols, rows = 3, 3
-for i in range(1, cols * rows + 1):
-    sample_idx = torch.randint(len(training_data), size=(1,)).item()
-    img, label = training_data[sample_idx]
-    figure.add_subplot(rows, cols, i)
-    figtitle = 'g=%.2f'%label
-    plt.title(figtitle)
-    plt.axis("off")
-    plt.imshow(np.log(np.log(img.squeeze()+1)+1), cmap="hot")
-plt.show()
+# figure = plt.figure(figsize=(8, 8))
+# cols, rows = 3, 3
+# for i in range(1, cols * rows + 1):
+#     sample_idx = torch.randint(len(training_data), size=(1,)).item()
+#     img, label = training_data[sample_idx]
+#     figure.add_subplot(rows, cols, i)
+#     figtitle = 'g=%.2f'%label
+#     plt.title(figtitle)
+#     plt.axis("off")
+#     plt.imshow(np.log(np.log(img.squeeze()+1)+1), cmap="hot")
+# plt.show()
 
 # We pass the Dataset as an argument to DataLoader. 
 # This wraps an iterable over our dataset, and supports automatic batching, sampling, shuffling and multiprocess data loading. 
@@ -122,27 +123,27 @@ class NeuralNetwork(nn.Module):
             nn.Conv2d(1, 32, 3),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.AvgPool2d(2, stride=2),
+            nn.MaxPool2d(2, stride=2),
 
             nn.Conv2d(32, 32, 3),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            nn.AvgPool2d(2, stride=2),
+            nn.MaxPool2d(2, stride=2),
 
             nn.Conv2d(32, 64, 3),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.AvgPool2d(2, stride=2),
+            nn.MaxPool2d(2, stride=2),
 
             nn.Conv2d(64, 64, 3),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.AvgPool2d(2, stride=2),
+            nn.MaxPool2d(2, stride=2),
 
             nn.Conv2d(64, 64, 3),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.AvgPool2d(2, stride=2),
+            nn.MaxPool2d(2, stride=2),
 
             nn.Conv2d(64, 128, 3),
             nn.BatchNorm2d(128),
@@ -174,7 +175,7 @@ summary(model, (1, 500, 500))
 loss_fn = nn.MSELoss()
 
 # TRICK TWO: use SGDM, stochastic gradient descent with momentum.
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9)
+optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-3)
 
 # TRICK THREE: use stepwise decreasing learning rate. 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
