@@ -10,7 +10,7 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 img_path="imageCW"
-annotations_file = os.path.join(img_path, "trainDataCW.csv")
+annotations_file = os.path.join(img_path, "trainDataCW_14.csv")
 img_labels = pd.read_csv(annotations_file)
 
 materials = pd.read_csv('materials.csv')
