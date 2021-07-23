@@ -55,8 +55,12 @@ class CustomImageDataset(Dataset):
         image = torch.from_numpy(image).reshape(1, h, w)
         image = image.float()
 
-        gt = self.img_labels.iloc[idx, 3]    # 3: g value
-        gt = torch.tensor(gt).reshape(-1)
+        ua = self.img_labels.iloc[idx, 1]    # 1: ua value
+        us = self.img_labels.iloc[idx, 2]    # 2: us value
+        g = self.img_labels.iloc[idx, 3]     # 3: g value
+
+        gt = torch.tensor([ua, us, g])
+        # gt = torch.tensor(gt).reshape(-1)
         gt = gt.float()
 
         if self.transform:
@@ -71,17 +75,32 @@ class CustomImageDataset(Dataset):
 # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
 # imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
 # imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, sta = 0.4645
+# imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, sta = 0.5010
+# gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
+
+class gtNormalize(object):
+    def __init__(self, minV, maxV):
+        self.minV = torch.tensor(minV)
+        self.maxV = torch.tensor(maxV)
+    
+    def __call__(self, gt):
+        gt = torch.div(gt - self.minV, self.maxV - self.minV)
+        return gt
+
+
 img_path="imageCW"
 training_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "trainDataCW.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0040, 0.4645)
+    transform = transforms.Normalize(0.0047, 0.5010),
+    target_transform = gtNormalize(minV = [0.0010, 0.0150, 0.1550], maxV = [0.2750, 100.92, 0.9550])
 )
 
 test_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "testDataCW.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0040, 0.4645)
+    transform = transforms.Normalize(0.0047, 0.5010),
+    target_transform = gtNormalize(minV = [0.0010, 0.0150, 0.1550], maxV = [0.2750, 100.92, 0.9550])
 )
 
 # figure = plt.figure(figsize=(8, 8))
@@ -152,8 +171,8 @@ class NeuralNetwork(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(128, 1),
-            nn.Tanh()
+            nn.Linear(128, 3),
+            nn.Sigmoid()
         )
 
     def forward(self, x):
@@ -175,10 +194,10 @@ summary(model, (1, 500, 500))
 loss_fn = nn.MSELoss()
 
 # TRICK TWO: use SGDM, stochastic gradient descent with momentum.
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-3)
+optimizer = torch.optim.SGD(model.parameters(), lr=8e-3, momentum=0.9, weight_decay=5e-3)
 
 # TRICK THREE: use stepwise decreasing learning rate. 
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 
 # In a single training loop, the model makes predictions on the training dataset (fed to it in batches), 
 # and backpropagates the prediction error to adjust the model’s parameters.
@@ -221,8 +240,8 @@ def test(dataloader, model, loss_fn):
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
             pred_error = (pred - y).abs()
-            small_error_num = (pred_error < 0.001).sum().item()
-            large_error_num = (pred_error >= 0.002).sum().item()
+            small_error_num = (pred_error[2] < 0.001).sum().item()
+            large_error_num = (pred_error[2] >= 0.002).sum().item()
             medium_error_num = len(pred_error) - small_error_num - large_error_num
             correct += [small_error_num, medium_error_num, large_error_num]
     test_loss /= num_batches
@@ -248,7 +267,7 @@ writer = SummaryWriter('training_results')
 import time
 since = time.time()
 
-epochs = 10
+epochs = 50
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
     train_loss = train(train_dataloader, model, loss_fn, optimizer)
