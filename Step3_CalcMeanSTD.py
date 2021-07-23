@@ -71,7 +71,9 @@ print(maxGt)
 # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
 # imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
 # imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, sta = 0.4645
+
 # imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, sta = 0.5010
+# gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
 
 # ===============================================================
 # If there are too many images to load into memory in one batch
