@@ -13,6 +13,8 @@ img_path="imageCW"
 annotations_file = os.path.join(img_path, "trainDataCW.csv")
 img_labels = pd.read_csv(annotations_file)
 
+materials = pd.read_csv('materials.csv')
+
 figure1 = plt.figure(figsize=(8, 8))
 cols, rows = 3, 5
 for i in range(1, cols * rows):
@@ -21,11 +23,13 @@ for i in range(1, cols * rows):
     ua = img_labels.iloc[sample_idx, 1]
     us = img_labels.iloc[sample_idx, 2]
     g = img_labels.iloc[sample_idx, 3]
+    material_name = materials.iloc[i-1, 0]
 
     img = io.loadmat(img_filename).get('rawData')
 
     figure1.add_subplot(rows, cols, i)
-    figtitle = 'ua=%.4f,us=%.4f,g=%.4f' %(ua, us, g)
+    # figtitle = 'ua=%.4f,us=%.4f,g=%.4f' %(ua, us, g)
+    figtitle = '%s' %material_name
     plt.title(figtitle)
     plt.axis("off")
     x = (img.squeeze() > 0)*128.0
@@ -41,11 +45,13 @@ for i in range(1, cols * rows):
     ua = img_labels.iloc[sample_idx, 1]
     us = img_labels.iloc[sample_idx, 2]
     g = img_labels.iloc[sample_idx, 3]
+    material_name = materials.iloc[i-1, 0]
 
     img = io.loadmat(img_filename).get('rawData')
 
     figure2.add_subplot(rows, cols, i)
-    figtitle = 'ua=%.4f,us=%.4f,g=%.4f' %(ua, us, g)
+    # figtitle = 'ua=%.4f,us=%.4f,g=%.4f' %(ua, us, g)
+    figtitle = '%s' %material_name
     plt.title(figtitle)
     plt.axis("off")
     plt.imshow(np.log(np.log(img.squeeze()+1)+1), cmap="hot")
