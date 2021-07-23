@@ -16,6 +16,7 @@ training_results/
 .ipynb_checkpoints/
 *.pth
 *.mat
+*.asv
 
 # Windows Installer files
 *.cab

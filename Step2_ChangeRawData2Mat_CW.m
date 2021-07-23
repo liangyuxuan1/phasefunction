@@ -24,5 +24,5 @@ for i=1:length(gDirList)
     end % for j, images
 end  % for i, dirlist
 
-copyfile [srcDataPath, filesep, '*.csv'] dstDataPath
+copyfile([srcDataPath, filesep, '*.csv'], dstDataPath)
 
