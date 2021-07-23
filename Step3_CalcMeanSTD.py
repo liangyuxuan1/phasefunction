@@ -32,9 +32,17 @@ class CustomImageDataset(Dataset):
         h, w = image.shape
         image = torch.from_numpy(image).reshape(1, h, w)
         image = image.float()
-        gt = self.img_labels.iloc[idx, 3]    # 3: g value
-        gt = torch.tensor(gt).reshape(-1)
-        gt = gt.float()
+
+        # gt = self.img_labels.iloc[idx, 3]    # 3: g value
+        # gt = torch.tensor(gt).reshape(-1)
+        # gt = gt.float()
+
+        ua = self.img_labels.iloc[idx, 1]    # 1: ua value
+        us = self.img_labels.iloc[idx, 2]    # 2: us value
+        g = self.img_labels.iloc[idx, 3]     # 3: g value
+
+        gt = torch.tensor([ua, us, g])
+
         return image, gt
 
 
@@ -48,11 +56,16 @@ training_data = CustomImageDataset(
 
 # If the images can be load into memory completely.
 train_dataloader = DataLoader(training_data, batch_size=len(training_data))
-img = next(iter(train_dataloader))
-mean = img[0].mean()
-std  = img[0].std()
+img, gt = next(iter(train_dataloader))
+mean = img.mean()
+std  = img.std()
 print(mean)
 print(std)
+
+minGt = gt.min(0)
+maxGt  = gt.max(0)
+print(minGt)
+print(maxGt)
 
 # Results
 # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
