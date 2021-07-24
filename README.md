@@ -43,20 +43,22 @@ The command line MOSE program is located in /MOSE along with the dependency runt
 
     moseVCTest.exe configFileName outputDataFileName mu_a mu_s g n
 
-First, I wrote a MATLAB program ([Step1_GenerateRawData_CW_v1.m](Step1_GenerateRawData_CW_v1.m)) to simulate light propagation in a homogeneous slab tissue with typical optical parameters of $u_a=0.05$, $u_s=10$, and $n=1.3$. The anisotropy factor $g$ varies from -1 to 1 with a step of 0.025. For each g value, MOSE was run 100 times to generate train data for the neural network, and 30 times to generate the test data. 
+First, simulated top-view observations of a homogeneous slab are generated using the MATLAB program [Step1_GenerateRawData_CW_v3.m](Step1_GenerateRawData_CW_v3.m), which calls the MOSE program to simulate the propagation of light through the slab. The optical parameters of the slab are selected in the typical ranges. 
 
-Since MOSE saves all side-view observations of the slab, another MATLAB program ([Step2_ChangeRawData2Mat_CW.m](Step2_ChangeRawData2Mat_CW.m)) was written to extract only the top-view observations. The results are saved in mat format to maintain the data accuracy. 
+- absorption coefficient: $\mu_a = [0.001, 0.05, 0.1, 0.5, 1, 2, 5, 10]$ $mm^{-1}$
+- scattering coefficient: $\mu_s = [0.01, 0.05, 0.1, 0.5, 1, 5, 10, 50, 100]$ $mm^{-1}$
+- anistropic scattering coefficient: $g = [-1:0.1:1]$
+- refraction index: $n = 1.3$
 
-Some images randomly selected from the training set are shown in the following figures.
+For each combination of optical parameters ($\mu_a$, $\mu_s$ and $g$), 80 observations were generated as training data for the neural network and 20 as testing data. Since MOSE saves all side-view observations of the slab, another MATLAB program ([Step2_ChangeRawData2Mat_CW.m](Step2_ChangeRawData2Mat_CW.m)) is written to extract only the top-view observations. The results are saved in mat format to maintain the data accuracy. 
 
-![](figures/Figure_v1_1.png)
+For some combination of optical parameters, very few photons reach the top-view. These observations are excluded in the following experiments because would hinder the training of neural network. 
 
+Some images randomly selected from the training set are shown in the following figures. 
 
-New data simulation strategy:
+![](figures/Figure_v2_1.png)
 
-![](figures/Figure_1.png)
-
-![](figures/Figure_2.png)
+![](figures/Figure_v2_2.png)
 
 
 
