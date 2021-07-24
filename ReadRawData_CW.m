@@ -2,6 +2,11 @@ function rawData = ReadRawData(rawDataFileName)
 % read raw data into matrix and normalize it.
 
 fid = fopen(rawDataFileName);
+if fid < 0
+    rawData = [];
+    return;
+end
+
 while 1
     flag = 0;
     
