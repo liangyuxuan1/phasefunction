@@ -27,11 +27,11 @@ end
 
 totalTrainNum = length(ua)*length(us)*length(g)*trainNum;
 totalTestNum  = length(ua)*length(us)*length(g)*testNum;
-varNames = {'image', 'ua', 'us', 'g', 'ok'};
-varTypes = {'string', 'double', 'double', 'double', 'logical'};
+varNames = {'image', 'ua', 'us', 'g', 'photonPosNum'};
+varTypes = {'string', 'double', 'double', 'double', 'int32'};
 trainTableCW = table('Size', [totalTrainNum,5], 'VariableTypes',varTypes,'VariableNames',varNames);
 testTableCW  = table('Size', [totalTestNum,5],  'VariableTypes',varTypes,'VariableNames',varNames);
-for ia = 8 % 1:length(ua)
+for ia = 1:length(ua)
     for is = 1:length(us)
         for ig = 1:length(g)
             samplePath = sprintf("a%02d_s%02d_g%03d",ia, is, ig);
@@ -40,37 +40,27 @@ for ia = 8 % 1:length(ua)
             end
             for i = 1:trainNum+testNum
                 dataFileName = sprintf("a%03d_s%03d_g%03d_%04d",ia, is, ig, i);  % data file name
-                dataFileName = fullfile(dataPath, samplePath, dataFileName);
-                parameters = ['MOSE\moseVCTest.exe', phantomFile, dataFileName, num2str(ua(ia)), num2str(us(is)), num2str(g(ig)), num2str(n)];
+                fullDataFileName = fullfile(dataPath, samplePath, dataFileName);
+                parameters = ['MOSE\moseVCTest.exe', phantomFile, fullDataFileName, num2str(ua(ia)), num2str(us(is)), num2str(g(ig)), num2str(n)];
                 cmdLine = strjoin(parameters, ' ');
                 
                 % check the results
-                dataFileName = strcat(dataFileName, '.T.CW')
-                if ~isfile(dataFileName)
-                    system(cmdLine);    % call MOSE
+                if ~isfile(strcat(fullDataFileName, '.T.CW'))
+                    % system(cmdLine);    % call MOSE
                 end
-
-                rawData = ReadRawData_CW(dataFileName);
-               
-                binaryImg = rawData > 0;
-                if (sum(sum(binaryImg)) > 50*50)    % only use images with enought information
-                    if i > trainNum
-                        counter = (ia-1)*length(us)*length(g)*testNum + (is-1)*length(g)*testNum + (ig-1)*testNum + i-trainNum;
-                        testTableCW(counter,:)  = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), 1};
-                    else
-                        counter = (ia-1)*length(us)*length(g)*trainNum + (is-1)*length(g)*trainNum + (ig-1)*trainNum + i;
-                        trainTableCW(counter,:) = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), 1};
-                    end
-                    % figure; imshow(binaryImg);
+                
+                photonNum = -1; % -1: not processed in step2
+                
+                dataFileName = strcat(dataFileName, '.T.CW');
+                if i > trainNum
+                    counter = (ia-1)*length(us)*length(g)*testNum + (is-1)*length(g)*testNum + (ig-1)*testNum + i-trainNum;
+                    testTableCW(counter,:)  = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), photonNum};
                 else
-                    if i > trainNum
-                        counter = (ia-1)*length(us)*length(g)*testNum + (is-1)*length(g)*testNum + (ig-1)*testNum + i-trainNum;
-                        testTableCW(counter,:)  = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), 0};
-                    else
-                        counter = (ia-1)*length(us)*length(g)*trainNum + (is-1)*length(g)*trainNum + (ig-1)*trainNum + i;
-                        trainTableCW(counter,:) = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), 0};
-                    end
+                    counter = (ia-1)*length(us)*length(g)*trainNum + (is-1)*length(g)*trainNum + (ig-1)*trainNum + i;
+                    trainTableCW(counter,:) = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), photonNum};
                 end
+                % figure; imshow(binaryImg);
+
             end % of ig
         end % of in
     end % of is
