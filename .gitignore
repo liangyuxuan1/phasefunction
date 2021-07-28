@@ -11,6 +11,7 @@ $RECYCLE.BIN/
 # User Ingore
 rawDataCW*/
 imageCW*/
+lineCW*/
 training_results/
 .vscode/
 .ipynb_checkpoints/
