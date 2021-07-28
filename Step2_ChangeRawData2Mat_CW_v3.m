@@ -1,7 +1,7 @@
 clear all;
 clc;
 
-srcDataPath = 'F:\rawDataCW_v3';   % path to the raw simulation results
+srcDataPath = 'rawDataCW_v3';   % path to the raw simulation results
 dstDataPath = 'imageCW_v3';     % path to store the images
 if ~exist(dstDataPath, 'dir')
     mkdir(dstDataPath);
