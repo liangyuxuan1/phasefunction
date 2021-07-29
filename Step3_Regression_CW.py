@@ -88,16 +88,16 @@ class gtNormalize(object):
         return gt
 
 
-img_path="imageCW"
+img_path="imageCW_v3"
 training_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v3_image.csv"),
     img_dir = img_path,
     transform = transforms.Normalize(0.0047, 0.5010),
     target_transform = gtNormalize(minV = [0.0010, 0.0150, 0.1550], maxV = [0.2750, 100.92, 0.9550])
 )
 
 test_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "testDataCW.csv"),
+    annotations_file = os.path.join(img_path, "testDataCW_v3_image.csv"),
     img_dir = img_path,
     transform = transforms.Normalize(0.0047, 0.5010),
     target_transform = gtNormalize(minV = [0.0010, 0.0150, 0.1550], maxV = [0.2750, 100.92, 0.9550])
