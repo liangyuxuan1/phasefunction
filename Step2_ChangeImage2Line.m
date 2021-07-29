@@ -7,9 +7,9 @@ if ~exist(dstDataPath, 'dir')
     mkdir(dstDataPath);
 end
 
-changeDataList(srcDataPath, 'trainDataCW.csv', dstDataPath);
-changeDataList(srcDataPath, 'testDataCW.csv',  dstDataPath);
-copyfile([srcDataPath, filesep, '*.csv'], dstDataPath);
+changeDataList(srcDataPath, 'trainDataCW_v3_image.csv', dstDataPath);
+changeDataList(srcDataPath, 'testDataCW_v3_image.csv',  dstDataPath);
+% copyfile([srcDataPath, filesep, '*.csv'], dstDataPath);
 
 function changeDataList(srcDataPath, dataListFileName, dstDataPath)
     T = readtable(fullfile(srcDataPath, dataListFileName));
@@ -34,14 +34,14 @@ function changeDataList(srcDataPath, dataListFileName, dstDataPath)
         end
             
         [M, N] = size(img);
-        line = img(M/2+1, :);
+        line = img(M/2+1, :) + img(M/2, :);
         dstFileName = strcat(filename(1:end-4), '_1.mat');
         newT(2*i-1, :) = T(i, :);
         newT(2*i-1, 1) = {dstFileName};
         newT(2*i-1, 5) = {sum(line>0)};
         save(fullfile(dstDataPath, dstFileName), 'line');
         
-        line = img(:, N/2+1)';
+        line = (img(:, N/2+1) + img(:, N/2))';
         dstFileName = strcat(filename(1:end-4), '_2.mat');
         newT(2*i, :) = T(i, :);
         newT(2*i, 1) = {dstFileName};
