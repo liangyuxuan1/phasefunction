@@ -7,11 +7,11 @@ if ~exist(dstDataPath, 'dir')
     mkdir(dstDataPath);
 end
 
-changeDataList(srcDataPath, 'trainDataCW_v3_image.csv', dstDataPath);
-changeDataList(srcDataPath, 'testDataCW_v3_image.csv',  dstDataPath);
+changeDataList(srcDataPath, 'trainDataCW_v3_image.csv', dstDataPath, 'trainDataCW_v3_line.csv' );
+changeDataList(srcDataPath, 'testDataCW_v3_image.csv',  dstDataPath, 'testDataCW_v3_line.csv');
 % copyfile([srcDataPath, filesep, '*.csv'], dstDataPath);
 
-function changeDataList(srcDataPath, dataListFileName, dstDataPath)
+function changeDataList(srcDataPath, dataListFileName, dstDataPath, dstFileName)
     T = readtable(fullfile(srcDataPath, dataListFileName));
     % varNames = {'image', 'ua', 'us', 'g', 'photonPosNum'};
     varTypes = {'string', 'double', 'double', 'double', 'int32'};
@@ -48,5 +48,7 @@ function changeDataList(srcDataPath, dataListFileName, dstDataPath)
         newT(2*i, 5) = {sum(line>0)};        
         save(fullfile(dstDataPath, dstFileName), 'line');
     end % for table
+    
+    writetable(newT, fullfile(dstDataPath, dstFileName));
 end
 
