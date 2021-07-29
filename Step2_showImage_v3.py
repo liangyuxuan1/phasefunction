@@ -33,9 +33,8 @@ for i in range(cols*rows):
     figtitle = 'ua=%.3f, us=%.2f, g=%.1f' %(ua, us, g)
     plt.title(figtitle)
     plt.axis("off")
-    x = img.squeeze() > 0
+    x = img > 0
     plt.imshow((x), cmap="hot")
-    #np.log(np.log(img.squeeze()+1)+1
 plt.show()
 
 figure2 = plt.figure(figsize=(8, 4))
@@ -53,6 +52,26 @@ for i in range(cols*rows):
     plt.title(figtitle)
     plt.axis("off")
     # x = np.log(img.squeeze() + 1)
-    x = np.float_power(img.squeeze(), 0.1)
+    x = np.float_power(img, 0.1)
     plt.imshow((x), cmap="hot")
+plt.show()
+
+figure3 = plt.figure(figsize=(8, 4))
+for i in range(cols*rows):
+    idx = sample_idx[i]
+    img_filename = os.path.join(img_path, img_labels.iloc[idx, 0])
+    ua = img_labels.iloc[idx, 1] 
+    us = img_labels.iloc[idx, 2]
+    g  = img_labels.iloc[idx, 3]
+
+    img = io.loadmat(img_filename).get('rawData')
+
+    figure3.add_subplot(rows, cols, i+1)
+    figtitle = 'ua=%.3f, us=%.2f, g=%.1f' %(ua, us, g)
+    plt.title(figtitle)
+    plt.axis("off")
+    M, N = np.shape(img)
+    x = img[int(M/2)][:] + img[int(M/2)+1][:]
+    x = np.float_power(x, 0.1)
+    plt.plot(x)
 plt.show()
