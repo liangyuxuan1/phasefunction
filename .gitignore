@@ -18,6 +18,8 @@ training_results/
 *.pth
 *.mat
 *.asv
+*.zip
+*.tmp
 
 # Windows Installer files
 *.cab
