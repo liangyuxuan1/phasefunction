@@ -56,9 +56,11 @@ For some combination of optical parameters, very few photons reach the top-view.
 
 Some images randomly selected from the training set are shown in the following figures. 
 
-![](figures/Figure_v2_1.png)
+![](figures/Figure_v3_2_2.png)
 
-![](figures/Figure_v2_2.png)
+![](figures/Figure_v3_3_2.png)
+
+![](figures/Figure_v3_4_2.png)
 
 
 
