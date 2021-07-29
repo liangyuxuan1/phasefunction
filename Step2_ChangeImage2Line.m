@@ -11,7 +11,7 @@ changeDataList(srcDataPath, 'trainDataCW_v3_image.csv', dstDataPath, 'trainDataC
 changeDataList(srcDataPath, 'testDataCW_v3_image.csv',  dstDataPath, 'testDataCW_v3_line.csv');
 % copyfile([srcDataPath, filesep, '*.csv'], dstDataPath);
 
-function changeDataList(srcDataPath, dataListFileName, dstDataPath, dstFileName)
+function changeDataList(srcDataPath, dataListFileName, dstDataPath, dstListFileName)
     T = readtable(fullfile(srcDataPath, dataListFileName));
     % varNames = {'image', 'ua', 'us', 'g', 'photonPosNum'};
     varTypes = {'string', 'double', 'double', 'double', 'int32'};
@@ -49,6 +49,6 @@ function changeDataList(srcDataPath, dataListFileName, dstDataPath, dstFileName)
         save(fullfile(dstDataPath, dstFileName), 'line');
     end % for table
     
-    writetable(newT, fullfile(dstDataPath, dstFileName));
+    writetable(newT, fullfile(dstDataPath, dstListFileName));
 end
 
