@@ -46,38 +46,41 @@ class CustomImageDataset(Dataset):
         return image, gt
 
 
-img_path="imageCW"
+img_path="imageCW_v3"
 training_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v3_image.csv"),
     img_dir = img_path
 )
 
 # Refer to：https://blog.csdn.net/peacefairy/article/details/108020179
 
 # If the images can be load into memory completely.
-train_dataloader = DataLoader(training_data, batch_size=len(training_data))
-img, gt = next(iter(train_dataloader))
-mean = img.mean()
-std  = img.std()
-print(mean)
-print(std)
 
-minGt = gt.min(0)
-maxGt  = gt.max(0)
-print(minGt)
-print(maxGt)
+# train_dataloader = DataLoader(training_data, batch_size=len(training_data))
+# img, gt = next(iter(train_dataloader))
+# mean = img.mean()
+# std  = img.std()
+# print(mean)
+# print(std)
+
+# minGt = gt.min(0)
+# maxGt  = gt.max(0)
+# print(minGt)
+# print(maxGt)
 
 # Results
 # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
 # imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
-# imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, sta = 0.4645
+# imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, std = 0.4645
 
-# imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, sta = 0.5010
+# imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, std = 0.5010
 # gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
+
+# imageCW_v3, 500x500, training number = 80, mean = 0.0050, std = 0.3737
 
 # ===============================================================
 # If there are too many images to load into memory in one batch
-train_dataloader = DataLoader(training_data, batch_size=1000)
+train_dataloader = DataLoader(training_data, batch_size=10000)
 
 total_sum = 0
 for batch in train_dataloader: 
