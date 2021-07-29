@@ -76,11 +76,11 @@ training_data = CustomImageDataset(
 # imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, std = 0.5010
 # gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
 
-# imageCW_v3, 500x500, training number = 80, mean = 0.0050, std = 0.3737
+# imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
 
 # ===============================================================
 # If there are too many images to load into memory in one batch
-train_dataloader = DataLoader(training_data, batch_size=10000)
+train_dataloader = DataLoader(training_data, batch_size=6048)
 
 total_sum = 0
 for batch in train_dataloader: 
