@@ -78,6 +78,8 @@ class CustomImageDataset(Dataset):
 # imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, sta = 0.5010
 # gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
 
+# imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
+
 class gtNormalize(object):
     def __init__(self, minV, maxV):
         self.minV = torch.tensor(minV)
@@ -92,15 +94,15 @@ img_path="imageCW_v3"
 training_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "trainDataCW_v3_image.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0047, 0.5010),
-    target_transform = gtNormalize(minV = [0.0010, 0.0150, 0.1550], maxV = [0.2750, 100.92, 0.9550])
+    transform = transforms.Normalize(0.0026, 0.9595),
+    target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 )
 
 test_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "testDataCW_v3_image.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0047, 0.5010),
-    target_transform = gtNormalize(minV = [0.0010, 0.0150, 0.1550], maxV = [0.2750, 100.92, 0.9550])
+    transform = transforms.Normalize(0.0026, 0.9595),
+    target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 )
 
 # figure = plt.figure(figsize=(8, 8))
