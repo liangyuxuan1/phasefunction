@@ -86,7 +86,9 @@ class gtNormalize(object):
         self.maxV = torch.tensor(maxV)
     
     def __call__(self, gt):
-        gt = torch.div(gt - self.minV, self.maxV - self.minV)
+        # normalize gt to [0.01, 1] to facilitate the calculation of relative error
+        k = torch.div(1.0-0.01, self.maxV - self.minV)
+        gt = 0.01 + k*(gt - self.minV)
         return gt
 
 
@@ -241,9 +243,9 @@ def test(dataloader, model, loss_fn):
             X, y = X.to(device), y.to(device)
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
-            pred_error = (pred - y).abs()
-            small_error_num = (pred_error[2] < 0.001).sum().item()
-            large_error_num = (pred_error[2] >= 0.002).sum().item()
+            pred_error = (pred - y).abs()/y
+            small_error_num = (pred_error <= 0.1).prod(1).sum().item()
+            large_error_num = (pred_error >= 0.5).prod(1).sum().item()
             medium_error_num = len(pred_error) - small_error_num - large_error_num
             correct += [small_error_num, medium_error_num, large_error_num]
     test_loss /= num_batches
@@ -277,7 +279,9 @@ for t in range(epochs):
 
     writer.add_scalar('Train/Loss', train_loss, t)
     writer.add_scalar('Test/Loss', test_loss, t)
-    writer.add_scalar('Accuracy', correct[0], t)
+    writer.add_scalar('Accuracy: relative error < 10%', correct[0], t)
+    writer.add_scalar('Accuracy: relative error 10-50%', correct[1], t)
+    writer.add_scalar('Accuracy: relative error > 50%', correct[2], t)
 writer.close()
 
 time_elapsed = time.time() - since
