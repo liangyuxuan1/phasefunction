@@ -52,7 +52,7 @@ First, simulated top-view observations of a homogeneous slab are generated using
 
 For each combination of optical parameters ($\mu_a$, $\mu_s$ and $g$), 80 observations were generated as training data for the neural network and 20 as testing data. For each MOSE run, one million photons are simulated. Since MOSE saves all side-view observations of the slab, another MATLAB program ([Step2_ChangeRawData2Mat_CW.m](Step2_ChangeRawData2Mat_CW.m)) is written to extract only the top-view image. The images are saved in mat format to maintain the data accuracy. 
 
-For some combination of optical parameters, very few photons reach the top-view. In the following experiments, images with less than 1% of the total number of pixels having pixel values greater than 0 are excluded because they would hinder the training of the neural network.
+[comment]: <> (For some combination of optical parameters, very few photons reach the top-view. In the following experiments, images with less than 1% of the total number of pixels having pixel values greater than 0 are excluded because they would hinder the training of the neural network.)
 
 Some images randomly selected from the training set are shown in the following figures. 
 
