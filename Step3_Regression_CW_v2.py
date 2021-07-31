@@ -124,7 +124,7 @@ test_data = CustomImageDataset(
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-batch_size = 20
+batch_size = 60
 train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -198,7 +198,7 @@ loss_fn = nn.MSELoss()
 
 # TRICK TWO: use SGDM, stochastic gradient descent with momentum.
 # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-3)
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=5e-3)
+optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=5e-3)
 
 # TRICK THREE: use stepwise decreasing learning rate. 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
