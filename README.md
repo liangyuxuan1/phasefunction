@@ -54,7 +54,7 @@ For each combination of optical parameters ($\mu_a$, $\mu_s$ and $g$), 80 observ
 
 [comment]: <> (For some combination of optical parameters, very few photons reach the top-view. In the following experiments, images with less than 1% of the total number of pixels having pixel values greater than 0 are excluded because they would hinder the training of the neural network.)
 
-Some images randomly selected from the training set are shown in the following figures. 
+Some images randomly selected from the training set are shown in Fig.1. 
 
 ![](figures/Figure_v3_2_2.png)
 
@@ -71,10 +71,34 @@ Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathemat
 
 ### Estimation of Optical Parameters 
 
-
+As my first try, a convolutional neural network (CNN) is designed to regreess the optical parameters $u_a$, $u_s$, and $g$. The diagram of the network is shown in Fig.2, which consists of 6 convolution layers and one fully connected layer. Each convolution layer is composed by stacking a $3\times 3$ convolution, a batch normalization layer, and a ReLU layer. The ground truth values are normalized to $[0.01, 1]$ to facilitate the calculation of relative errors. 
 
 <div align=center>
 <img src="figures/NN1.jpg" width="70%" />
 
 Fig 2. Diagram of neural network for optical parameter regression
+</div>
+
+#### Implement Details
+
+    GPU: Titan Xp
+    Loss function: MSE
+    Optimizer: Adam
+    Initial learning rate: 5e-4, decreased by a factor of 0.1 every 10 epochs
+    Weight decay: 5e-3
+    Batch size: 60
+    Training epoches: 30
+
+#### Results
+
+<div align=center>
+<img src="figures/Test_Loss.png" width="70%" />
+
+Fig 3. Chart of testing loss
+</div>
+
+<div align=center>
+<img src="figures/Accuracy_relative_error_10.png" width="70%" />
+
+Fig 4. Rate of samples relative error less than 10%
 </div>
