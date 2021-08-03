@@ -1,4 +1,4 @@
-# Machine Learning of the Phase Function
+# Estimation of Phase Function based on Machine Learning
 
 Summer-intern project supervised by Prof. [Ge Wang](https://biotech.rpi.edu/centers/bic/people/faculty/ge-wang), Rensselaer Polytechnic Institute (RPI).
 
@@ -66,8 +66,12 @@ Some images randomly selected from the training set are shown in the following f
 Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equantions correctly.
 
 
-### Regression Optical Parameters
+### Estimation of Optical Parameters 
 
 
 
-![Diagram of neural network](figures/NN1.jpg)
+<div align=center>
+<img src="figures/NN1.jpg" width="80%" />
+
+Fig 2. Diagram of neural network model for optical parameter regression
+</div>
