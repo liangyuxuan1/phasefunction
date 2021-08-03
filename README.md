@@ -63,7 +63,7 @@ Some images randomly selected from the training set are shown in the following f
 ![](figures/Figure_v3_4_2.png)
 
 
-Note: Install MathJax Plugin for Github from Chrome Store to show the mathematical equantions correctly.
+Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equantions correctly.
 
 
 ### Regression Optical Parameters
