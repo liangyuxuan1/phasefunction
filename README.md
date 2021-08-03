@@ -108,3 +108,5 @@ Fig 4. Rate of samples relative error less than 10%
 
 Fig 5. Rate of samples relative error greater than 50%
 </div>
+
+The results demonstrate that, first of all, the training procedure converges, and the network learns to predict the optical parameters. The prediction accuracy improves as the learning process proceeds, as shown by the increasing percentage of small relative error samples (Fig.4) and decreasing percentage of large relative error samples (Fig.5).  
