@@ -62,6 +62,9 @@ Some images randomly selected from the training set are shown in the following f
 
 ![](figures/Figure_v3_4_2.png)
 
+<div align=center>
+Fig 1. Example of simulated images
+</div>
 
 Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equantions correctly.
 
@@ -73,5 +76,5 @@ Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathemat
 <div align=center>
 <img src="figures/NN1.jpg" width="70%" />
 
-Fig 2. Diagram of neural network model for optical parameter regression
+Fig 2. Diagram of neural network for optical parameter regression
 </div>
