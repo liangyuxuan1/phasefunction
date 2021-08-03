@@ -70,3 +70,4 @@ Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathemat
 
 
 
+![Diagram of neural network](figures/NN1.jpg)
