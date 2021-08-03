@@ -92,19 +92,19 @@ Fig 2. Diagram of neural network for optical parameter regression
 #### Results
 
 <div align=center>
-<img src="figures/Test_Loss.png" width="50%" />
+<img src="figures/Test_Loss.png" width="40%" />
 
 Fig 3. Chart of testing loss
 </div>
 
 <div align=center>
-<img src="figures/Accuracy_relative_error_10.png" width="50%" />
+<img src="figures/Accuracy_relative_error_10.png" width="40%" />
 
 Fig 4. Rate of samples relative error less than 10%
 </div>
 
 <div align=center>
-<img src="figures/Accuracy_relative_error_50.png" width="50%" />
+<img src="figures/Accuracy_relative_error_50.png" width="40%" />
 
 Fig 5. Rate of samples relative error greater than 50%
 </div>
