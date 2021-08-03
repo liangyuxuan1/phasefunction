@@ -102,3 +102,9 @@ Fig 3. Chart of testing loss
 
 Fig 4. Rate of samples relative error less than 10%
 </div>
+
+<div align=center>
+<img src="figures/Accuracy_relative_error_50.png" width="50%" />
+
+Fig 5. Rate of samples relative error greater than 50%
+</div>
