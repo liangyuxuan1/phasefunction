@@ -71,7 +71,7 @@ Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathemat
 
 
 <div align=center>
-<img src="figures/NN1.jpg" width="80%" />
+<img src="figures/NN1.jpg" width="70%" />
 
 Fig 2. Diagram of neural network model for optical parameter regression
 </div>
