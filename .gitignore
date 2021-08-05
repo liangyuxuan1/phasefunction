@@ -12,7 +12,7 @@ $RECYCLE.BIN/
 rawDataCW*/
 imageCW*/
 lineCW*/
-training_results/
+training_results*/
 .vscode/
 .ipynb_checkpoints/
 *.pth
