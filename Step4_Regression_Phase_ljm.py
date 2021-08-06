@@ -124,7 +124,7 @@ test_data = CustomImageDataset(
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-batch_size = 20
+batch_size = 60
 train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -138,7 +138,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print("Using {} device".format(device))
 
 # Define model
-num_of_Gaussian = 5
+num_of_Gaussian = 20
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
@@ -175,7 +175,7 @@ class NeuralNetwork(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(128*11*11, 3*num_of_Gaussian),
+            nn.Linear(128*11*11, 3*num_of_Gaussian+2),
             nn.Sigmoid()
         )
 
@@ -234,7 +234,7 @@ def GMM(nnOut, theta):
     for i in range(bSize):
         for j in range(num_of_Gaussian):
             gmm[i,:] += (w[i, j]/w_sum[i]) * normfun(theta, m[i, j], d[i, j])
-        print(torch.sum(gmm[i,:]))
+        #print(torch.sum(gmm[i,:]))
     return gmm
 
 # loss_fn = nn.MSELoss()
@@ -246,15 +246,25 @@ theta = torch.from_numpy(theta).to(device)
 # sin_theta = sin_theta.to(device)
 
 def loss_fn(prediction, gt):
-    gmm = GMM(prediction, theta)
+    gmm = GMM(prediction[:, 2:], theta)
     
     g = gt[:, 2]
     p_theta = HG_theta(g, theta)
+    uat = gt[:, 0]/(torch.max(gt[:, 0]) - torch.min(gt[:,0]))
+    ust = gt[:, 1]/(torch.max(gt[:, 1]) - torch.min(gt[:,1]))
+    uap = prediction[:, 0]/(torch.max(prediction[:, 0]) - torch.min(prediction[:, 0]))
+    usp = prediction[:, 1]/(torch.max(prediction[:, 1]) - torch.min(prediction[:, 1]))
 
     loss1 = kl_divergence(gmm, p_theta)
     loss2 = kl_divergence(p_theta, gmm)
+    loss_fn1 = nn.MSELoss()
+    loss3 = loss_fn1(uat, uap)  
+    loss4 = loss_fn1(ust, usp)
 
-    loss = (loss1 + loss2)/2.0
+    loss = (loss1 + loss2)/2.0 + loss3 + loss4
+    if g == 1 or g == -1:
+        loss = 0
+
     return loss
 
 
@@ -264,6 +274,9 @@ optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=5e-3)
 
 # TRICK THREE: use stepwise decreasing learning rate. 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
+from torch.utils.tensorboard import SummaryWriter 
+writer = SummaryWriter('training_results')
 
 # In a single training loop, the model makes predictions on the training dataset (fed to it in batches), 
 # and backpropagates the prediction error to adjust the model’s parameters.
@@ -289,10 +302,15 @@ def train(dataloader, model, loss_fn, optimizer):
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>10f}  [{current:>5d}/{size:>5d}]")
     
+    theta = [0,np.pi,0.01]
+    gmm = GMM(y,theta)
+    sum1 =torch.sum(gmm[batch,:])
+    
+
     train_loss /= num_batches
     scheduler.step()
 
-    return train_loss
+    return train_loss, sum1
 
 # We also check the model’s performance against the test dataset to ensure it is learning.
 def test(dataloader, model, loss_fn):
@@ -305,14 +323,14 @@ def test(dataloader, model, loss_fn):
             X, y = X.to(device), y.to(device)
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
-            pred_error = (pred - y).abs()/y
-            small_error_num = (pred_error <= 0.1).prod(1).sum().item()
-            large_error_num = (pred_error >= 0.5).prod(1).sum().item()
-            medium_error_num = len(pred_error) - small_error_num - large_error_num
-            correct += [small_error_num, medium_error_num, large_error_num]
+            # pred_error = (pred - y).abs()/y
+            # small_error_num = (pred_error <= 0.1).prod(1).sum().item()
+            # large_error_num = (pred_error >= 0.5).prod(1).sum().item()
+            # medium_error_num = len(pred_error) - small_error_num - large_error_num
+            # correct += [small_error_num, medium_error_num, large_error_num]
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
+    #print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
 
     return test_loss, correct
 
@@ -327,8 +345,8 @@ def test(dataloader, model, loss_fn):
 
 # https://zhuanlan.zhihu.com/p/103630393 , this works
 # 不要安装pytorch profiler, 如果安装了，pip uninstall torch-tb-profiler. 否则tensorboard load 数据有问题
-from torch.utils.tensorboard import SummaryWriter 
-writer = SummaryWriter('training_results')
+
+
 
 import time
 since = time.time()
@@ -336,14 +354,15 @@ since = time.time()
 epochs = 30
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
-    train_loss = train(train_dataloader, model, loss_fn, optimizer)
+    train_loss, sum = train(train_dataloader, model, loss_fn, optimizer)
     test_loss, correct = test(test_dataloader, model, loss_fn)
 
+    writer.add_scalar('Sum', sum, t)
     writer.add_scalar('Train/Loss', train_loss, t)
     writer.add_scalar('Test/Loss', test_loss, t)
-    writer.add_scalar('Accuracy: relative error < 10%', correct[0], t)
-    writer.add_scalar('Accuracy: relative error 10-50%', correct[1], t)
-    writer.add_scalar('Accuracy: relative error > 50%', correct[2], t)
+    # writer.add_scalar('Accuracy: relative error < 10%', correct[0], t)
+    # writer.add_scalar('Accuracy: relative error 10-50%', correct[1], t)
+    # writer.add_scalar('Accuracy: relative error > 50%', correct[2], t)
 writer.close()
 
 time_elapsed = time.time() - since
