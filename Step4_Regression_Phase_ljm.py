@@ -124,7 +124,7 @@ test_data = CustomImageDataset(
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-batch_size = 60
+batch_size = 20
 train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -246,26 +246,23 @@ theta = torch.from_numpy(theta).to(device)
 # sin_theta = sin_theta.to(device)
 
 def loss_fn(prediction, gt):
-    gmm = GMM(prediction[:, 2:], theta)
+    gmm = GMM(prediction[:, 0:num_of_Gaussian*3], theta)
+    mean_sum_GMM = torch.mean(torch.sum(gmm, dim=1))
     
     g = gt[:, 2]
     p_theta = HG_theta(g, theta)
-    uat = gt[:, 0]/(torch.max(gt[:, 0]) - torch.min(gt[:,0]))
-    ust = gt[:, 1]/(torch.max(gt[:, 1]) - torch.min(gt[:,1]))
-    uap = prediction[:, 0]/(torch.max(prediction[:, 0]) - torch.min(prediction[:, 0]))
-    usp = prediction[:, 1]/(torch.max(prediction[:, 1]) - torch.min(prediction[:, 1]))
 
     loss1 = kl_divergence(gmm, p_theta)
     loss2 = kl_divergence(p_theta, gmm)
-    loss_fn1 = nn.MSELoss()
-    loss3 = loss_fn1(uat, uap)  
-    loss4 = loss_fn1(ust, usp)
+    loss_phase = (loss1 + loss2)/2.0
 
-    loss = (loss1 + loss2)/2.0 + loss3 + loss4
-    if g == 1 or g == -1:
-        loss = 0
+    uas = prediction[:, num_of_Gaussian*3:num_of_Gaussian*3+2]
+    gt_uas = gt[:, 0:2]
+    loss_uas = nn.MSELoss()(uas, gt_uas)  
 
-    return loss
+    loss = loss_phase + loss_uas
+
+    return loss, mean_sum_GMM
 
 
 # TRICK TWO: use SGDM, stochastic gradient descent with momentum.
@@ -290,7 +287,7 @@ def train(dataloader, model, loss_fn, optimizer):
 
         # Compute prediction error
         pred = model(X)
-        loss = loss_fn(pred, y)
+        loss, mean_sum_GMM = loss_fn(pred, y)
         train_loss += loss.item()
 
         # Backpropagation
@@ -300,17 +297,12 @@ def train(dataloader, model, loss_fn, optimizer):
 
         if batch % 10 == 0:
             loss, current = loss.item(), batch * len(X)
-            print(f"loss: {loss:>10f}  [{current:>5d}/{size:>5d}]")
-    
-    theta = [0,np.pi,0.01]
-    gmm = GMM(y,theta)
-    sum1 =torch.sum(gmm[batch,:])
-    
+            print(f"loss: {loss:>10f}  [{current:>5d}/{size:>5d}], mean sum GMM: {mean_sum_GMM:>5f}")
 
     train_loss /= num_batches
     scheduler.step()
 
-    return train_loss, sum1
+    return train_loss
 
 # We also check the model’s performance against the test dataset to ensure it is learning.
 def test(dataloader, model, loss_fn):
@@ -322,7 +314,9 @@ def test(dataloader, model, loss_fn):
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
             pred = model(X)
-            test_loss += loss_fn(pred, y).item()
+            loss, mean_sum_GMM = loss_fn(pred, y)
+            test_loss += loss.item()
+            
             # pred_error = (pred - y).abs()/y
             # small_error_num = (pred_error <= 0.1).prod(1).sum().item()
             # large_error_num = (pred_error >= 0.5).prod(1).sum().item()
@@ -331,6 +325,7 @@ def test(dataloader, model, loss_fn):
     test_loss /= num_batches
     correct /= size
     #print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
+    print(f"Test Avg loss: {test_loss:>10f} \n")
 
     return test_loss, correct
 
@@ -346,18 +341,15 @@ def test(dataloader, model, loss_fn):
 # https://zhuanlan.zhihu.com/p/103630393 , this works
 # 不要安装pytorch profiler, 如果安装了，pip uninstall torch-tb-profiler. 否则tensorboard load 数据有问题
 
-
-
 import time
 since = time.time()
 
 epochs = 30
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
-    train_loss, sum = train(train_dataloader, model, loss_fn, optimizer)
+    train_loss = train(train_dataloader, model, loss_fn, optimizer)
     test_loss, correct = test(test_dataloader, model, loss_fn)
 
-    writer.add_scalar('Sum', sum, t)
     writer.add_scalar('Train/Loss', train_loss, t)
     writer.add_scalar('Test/Loss', test_loss, t)
     # writer.add_scalar('Accuracy: relative error < 10%', correct[0], t)
