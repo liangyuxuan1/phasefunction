@@ -13,6 +13,7 @@ rawDataCW*/
 imageCW*/
 lineCW*/
 training_results*/
+checkpoints*/
 .vscode/
 .ipynb_checkpoints/
 *.pth
