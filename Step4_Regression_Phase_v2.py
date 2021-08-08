@@ -11,6 +11,9 @@ from torchvision import datasets
 from torchvision import transforms
 from torchvision.transforms import ToTensor, Lambda, Compose
 
+import shutil
+import io
+
 # pip install matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,7 +35,7 @@ import pandas as pd
 from torchvision.io import read_image
 
 # pip install scipy
-import scipy.io as io
+import scipy.io as scipyIO
 
 #data = io.loadmat(fullFileName, variable_names='rawData', mat_dtype=True)
 
@@ -49,7 +52,7 @@ class CustomImageDataset(Dataset):
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0]) # 0: filename
         # image = read_image(img_path)
-        image = io.loadmat(img_path).get('rawData')
+        image = scipyIO.loadmat(img_path).get('rawData')
         image = image.astype(np.float64)
         h, w = image.shape
         image = torch.from_numpy(image).reshape(1, h, w)
@@ -91,9 +94,14 @@ class gtNormalize(object):
         gt = 0.01 + k*(gt - self.minV)
         return gt
 
+    def restore(self, gt):
+        # restore the normalized values
+        k = torch.div(1.0-0.01, self.maxV - self.minV)
+        gt = (gt - 0.01)/k + self.minV
+        return gt
 
 img_path="imageCW_v3"
-training_data = CustomImageDataset(
+train_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "trainDataCW_v3_image.csv"),
     img_dir = img_path,
     transform = transforms.Normalize(0.0026, 0.9595),
@@ -106,6 +114,8 @@ test_data = CustomImageDataset(
     transform = transforms.Normalize(0.0026, 0.9595),
     target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 )
+
+gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 
 # figure = plt.figure(figsize=(8, 8))
 # cols, rows = 3, 3
@@ -124,8 +134,8 @@ test_data = CustomImageDataset(
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-batch_size = 60
-train_dataloader = DataLoader(training_data, batch_size=batch_size, shuffle=True)
+batch_size = 20
+train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
 # Creating Models
@@ -138,6 +148,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print("Using {} device".format(device))
 
 # Define model
+num_of_Gaussian = 20
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
@@ -174,7 +185,7 @@ class NeuralNetwork(nn.Module):
         )
 
         self.fc = nn.Sequential(
-            nn.Linear(128*11*11, 30),
+            nn.Linear(128*11*11, 3*num_of_Gaussian+2),
             nn.Sigmoid()
         )
 
@@ -194,31 +205,73 @@ summary(model, (1, 500, 500))
 
 # Optimizing the Model Parameters
 # To train a model, we need a loss function and an optimizer.
-def kl_divergence(dis_a,dis_b):
-    dis_a += 1e-6
-    dis_b += 1e-6
-    part1 = dis_a*log_a
-    log_a = np.log(dis_a)
-    log_b = np.log(dis_b)
-    part2 = dis_a*log_b
-    result =np.sum(part1-part2)
+
+def kl_divergence(dis_a, dis_b):
+    disa = dis_a + 1e-6
+    disb = dis_b + 1e-6
+    loga = torch.log(disa)
+    logb = torch.log(disb)
+    part1 = dis_a*loga
+    part2 = dis_a*logb
+    result = torch.sum(part1-part2)
     return result
 
-def loss_fn(pred, gt):
-    gt = gt.detach().numpy()
-    pred = pred.detach().numpy()
-    loss = 0
-    theta = np.arange(0, np.pi, 0.01)
-    p = np.zeros(shape=(len(gt),len(theta)))
-    q = np.zeros(shape=(len(gt),len(theta)))
-    for i in range(len(gt)):
-        p[i,:] = (1-gt[i,2]*gt[i,2])/((1+gt[i,2]*gt[i,2]-2*gt[i,2]*np.cos(theta))**(3/2))/(2*np.pi)
-        for j in range(10):
-            q[i,:] += pred[i,3*j-1]/(np.sqrt(2*np.pi)*pred[i,3*j-1-1])*np.exp((np.cos(theta)-pred[i,3*j-2-1])**(2)/(2*np.square(pred[i,3*j-1-1])))
-        loss += kl_divergence(p[i],q[i])
-        loss = torch.tensor(loss)
+def HG_theta(g, theta):
+    # calculate 2*pi*p(cos(theta))
+    bSize = g.size()[0] 
+    p = torch.zeros(bSize, theta.size()[0]).to(device)
+    for i in range(bSize):
+        p[i,:] = 0.5*(1-g[i]*g[i])/((1+g[i]*g[i]-2*g[i]*torch.cos(theta))**(3.0/2.0) + 1e-6)
+        p[i,:] *= torch.sin(theta)
+        # print(torch.sum(p[i,:]))
+    return p
 
-    return loss
+def normfun(x, mean, sigma):
+    pi = np.pi
+    pi = torch.tensor(pi)
+    G_x = torch.exp(-((x - mean)**2)/(2*sigma**2)) / (sigma * torch.sqrt(2*pi))
+    return G_x
+
+def GMM(nnOut, theta):
+    pi = torch.tensor(np.pi)
+    w = nnOut[:, 0:num_of_Gaussian]                         # weight [0, 1], sum(w)=1
+    w_sum = torch.sum(w, dim=1)
+    m = nnOut[:, num_of_Gaussian:num_of_Gaussian*2]*pi      # mean [0, 1]*pi
+    d = nnOut[:, num_of_Gaussian*2:num_of_Gaussian*3]       # std [0, 1]
+
+    bSize = nnOut.size()[0]
+    gmm = torch.zeros(bSize, theta.size()[0]).to(device)
+    for i in range(bSize):
+        for j in range(num_of_Gaussian):
+            gmm[i,:] += (w[i, j]/w_sum[i]) * normfun(theta, m[i, j], d[i, j])
+        #print(torch.sum(gmm[i,:]))
+    return gmm
+
+# loss_fn = nn.MSELoss()
+theta = np.arange(0, np.pi, 0.01)
+theta = torch.from_numpy(theta).to(device)
+
+def loss_fn(prediction, gt):
+    gmm = GMM(prediction[:, 0:num_of_Gaussian*3], theta)
+    mean_sum_GMM = torch.mean(torch.sum(gmm, dim=1))
+    
+    gt = gtNorm.restore(gt.to("cpu"))
+    gt = gt.to(device)
+    g = gt[:, 2]
+    p_theta = HG_theta(g, theta)
+
+    loss1 = kl_divergence(gmm, p_theta)
+    loss2 = kl_divergence(p_theta, gmm)
+    loss_phase = (loss1 + loss2)/2.0
+
+    uas = prediction[:, num_of_Gaussian*3:num_of_Gaussian*3+2]
+    gt_uas = gt[:, 0:2]
+    loss_uas = nn.MSELoss()(uas, gt_uas)  
+
+    loss = loss_phase + loss_uas
+
+    return loss, mean_sum_GMM
+
 
 # TRICK TWO: use SGDM, stochastic gradient descent with momentum.
 # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-3)
@@ -226,6 +279,9 @@ optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=5e-3)
 
 # TRICK THREE: use stepwise decreasing learning rate. 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
+from torch.utils.tensorboard import SummaryWriter 
+writer = SummaryWriter('training_results')
 
 # In a single training loop, the model makes predictions on the training dataset (fed to it in batches), 
 # and backpropagates the prediction error to adjust the model’s parameters.
@@ -239,8 +295,8 @@ def train(dataloader, model, loss_fn, optimizer):
 
         # Compute prediction error
         pred = model(X)
-        loss = loss_fn(pred, y)
-        train_loss += loss
+        loss, mean_sum_GMM = loss_fn(pred, y)
+        train_loss += loss.item()
 
         # Backpropagation
         optimizer.zero_grad()
@@ -249,8 +305,8 @@ def train(dataloader, model, loss_fn, optimizer):
 
         if batch % 10 == 0:
             loss, current = loss.item(), batch * len(X)
-            print(f"loss: {loss:>10f}  [{current:>5d}/{size:>5d}]")
-    
+            print(f"loss: {loss:>10f}  [{current:>5d}/{size:>5d}], mean sum GMM: {mean_sum_GMM:>5f}")
+
     train_loss /= num_batches
     scheduler.step()
 
@@ -266,15 +322,18 @@ def test(dataloader, model, loss_fn):
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
             pred = model(X)
-            test_loss += loss_fn(pred, y).item()
-            pred_error = (pred - y).abs()/y
-            small_error_num = (pred_error <= 0.1).prod(1).sum().item()
-            large_error_num = (pred_error >= 0.5).prod(1).sum().item()
-            medium_error_num = len(pred_error) - small_error_num - large_error_num
-            correct += [small_error_num, medium_error_num, large_error_num]
+            loss, mean_sum_GMM = loss_fn(pred, y)
+            test_loss += loss.item()
+            
+            # pred_error = (pred - y).abs()/y
+            # small_error_num = (pred_error <= 0.1).prod(1).sum().item()
+            # large_error_num = (pred_error >= 0.5).prod(1).sum().item()
+            # medium_error_num = len(pred_error) - small_error_num - large_error_num
+            # correct += [small_error_num, medium_error_num, large_error_num]
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
+    #print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
+    print(f"Test Avg loss: {test_loss:>10f} \n")
 
     return test_loss, correct
 
@@ -289,35 +348,137 @@ def test(dataloader, model, loss_fn):
 
 # https://zhuanlan.zhihu.com/p/103630393 , this works
 # 不要安装pytorch profiler, 如果安装了，pip uninstall torch-tb-profiler. 否则tensorboard load 数据有问题
-from torch.utils.tensorboard import SummaryWriter 
-writer = SummaryWriter('training_results')
+
+# How To Save and Load Model In PyTorch With A Complete Example
+# https://towardsdatascience.com/how-to-save-and-load-a-model-in-pytorch-with-a-complete-example-c2920e617dee
+#
+# Saving function
+def save_ckp(state, checkpoint_path):
+    """
+    state: checkpoint we want to save
+    checkpoint_path: path to save checkpoint
+    """
+    f_path = checkpoint_path
+    # save checkpoint data to the path given, checkpoint_path
+    torch.save(state, f_path)
+
+# Loading function
+def load_ckp(checkpoint_fpath, model, optimizer):
+    """
+    checkpoint_path: path to save checkpoint
+    model: model that we want to load checkpoint parameters into       
+    optimizer: optimizer we defined in previous training
+    """
+    # load check point
+    checkpoint = torch.load(checkpoint_fpath)
+    # initialize state_dict from checkpoint to model
+    model.load_state_dict(checkpoint['state_dict'])
+    # initialize optimizer from checkpoint to optimizer
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    # initialize valid_loss_min from checkpoint to valid_loss_min
+    test_loss_min = checkpoint['test_loss_min']
+    # return model, optimizer, epoch value, min validation loss 
+    return model, optimizer, checkpoint['epoch'], test_loss_min
+
+
+# show test results and add the figure in writter
+# https://tensorflow.google.cn/tensorboard/image_summaries?hl=zh-cn
+
+def show_test_samples():
+    cols, rows = 4, 2
+    numEachUaGroup = 9*21*20
+    sample_idx = np.zeros(cols*rows, dtype=np.int32)
+    for i in range (cols*rows):
+        sample_idx[i] = np.random.randint(numEachUaGroup) + i*numEachUaGroup
+    
+    figure = plt.figure(figsize=(8, 4))
+    for i in range(cols * rows):
+        idx = sample_idx[i]
+        img, gt = test_data[idx]
+        x = img.squeeze()
+        gt = gtNorm.restore(gt)
+
+        figure.add_subplot(rows, cols, i+1)
+        figtitle = 'ua=%.3f, us=%.2f, g=%.1f' %(gt[0], gt[1], gt[2])
+        plt.title(figtitle)
+        plt.axis("off")
+        #x = torch.float_power(img.squeeze(), 0.1)
+        plt.imshow((x), cmap="hot")
+    return figure
+
+def plot_to_image(figure):
+    """Converts the matplotlib plot specified by 'figure' to a PNG image and
+    returns it. The supplied figure is closed and inaccessible after this call."""
+    # Save the plot to a PNG in memory.
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    # Closing the figure prevents it from being displayed directly inside
+    # the notebook.
+    plt.close(figure)
+    buf.seek(0)
+    # Convert PNG buffer to TF image
+    image = tf.image.decode_png(buf.getvalue(), channels=4)
+    # Add the batch dimension
+    image = tf.expand_dims(image, 0)
+    return image
+
+start_epoch = 1
+n_epochs = 30
+test_loss_min = torch.tensor(np.Inf)
+
+checkpoint_path = 'checkpoints'
+if not os.path.exists(checkpoint_path):
+    os.mkdir(checkpoint_path)
+
+checkpoint_file = os.path.join(checkpoint_path, 'current_checkpoint.pt')
+best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
+
+resume_training = False
+if resume_training:
+    model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
 
 import time
 since = time.time()
 
-epochs = 30
-for t in range(epochs):
-    print(f"Epoch {t+1}\n-------------------------------")
+for epoch in range(start_epoch, n_epochs+1):
+    print(f"Epoch {epoch}\n-------------------------------")
+
     train_loss = train(train_dataloader, model, loss_fn, optimizer)
     test_loss, correct = test(test_dataloader, model, loss_fn)
 
-    writer.add_scalar('Train/Loss', train_loss, t)
-    writer.add_scalar('Test/Loss', test_loss, t)
-    writer.add_scalar('Accuracy: relative error < 10%', correct[0], t)
-    writer.add_scalar('Accuracy: relative error 10-50%', correct[1], t)
-    writer.add_scalar('Accuracy: relative error > 50%', correct[2], t)
+    writer.add_scalar('Train/Loss', train_loss, epoch)
+    writer.add_scalar('Test/Loss', test_loss, epoch)
+    # writer.add_scalar('Accuracy: relative error < 10%', correct[0], epoch)
+    # writer.add_scalar('Accuracy: relative error 10-50%', correct[1], epoch)
+    # writer.add_scalar('Accuracy: relative error > 50%', correct[2], epoch)
+
+    figure = show_test_samples()
+    writer.add_figure('Examples of Test Results', figure, epoch)
+
+    # create checkpoint variable and add important data
+    checkpoint = {
+        'epoch': epoch + 1,
+        'test_loss_min': test_loss_min,
+        'state_dict': model.state_dict(),
+        'optimizer': optimizer.state_dict(),
+    }
+        
+    ## save the model if test loss has decreased
+    if test_loss < test_loss_min:
+        print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))
+        # save checkpoint as best model
+        test_loss_min = test_loss
+        save_ckp(checkpoint, checkpoint_file)
+        shutil.copyfile(checkpoint_file, best_model_file)   
+    else:
+        save_ckp(checkpoint, checkpoint_file)
+
+
 writer.close()
 
 time_elapsed = time.time() - since
 print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60 , time_elapsed % 60))
 
-# Saving Models
-torch.save(model.state_dict(), "model.pth")
-print("Saved PyTorch Model State to model.pth")
-
-# Loading Models
-model = NeuralNetwork()
-model.load_state_dict(torch.load("model.pth"))
 
 
 
