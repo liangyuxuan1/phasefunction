@@ -134,7 +134,7 @@ gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-batch_size = 20
+batch_size = 60
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -406,21 +406,6 @@ def show_test_samples():
         plt.imshow((x), cmap="hot")
     return figure
 
-def plot_to_image(figure):
-    """Converts the matplotlib plot specified by 'figure' to a PNG image and
-    returns it. The supplied figure is closed and inaccessible after this call."""
-    # Save the plot to a PNG in memory.
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    # Closing the figure prevents it from being displayed directly inside
-    # the notebook.
-    plt.close(figure)
-    buf.seek(0)
-    # Convert PNG buffer to TF image
-    image = tf.image.decode_png(buf.getvalue(), channels=4)
-    # Add the batch dimension
-    image = tf.expand_dims(image, 0)
-    return image
 
 start_epoch = 1
 n_epochs = 30
