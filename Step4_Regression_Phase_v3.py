@@ -206,16 +206,16 @@ summary(model, (1, 500, 500))
 # Optimizing the Model Parameters
 # To train a model, we need a loss function and an optimizer.
 
-def kl_divergence(dis_a, dis_b):
-    disa = dis_a + 1e-6
-    disb = dis_b + 1e-6
-    loga = torch.log(disa)
-    logb = torch.log(disb)
-    part1 = dis_a*loga
-    part2 = dis_a*logb
-    result = torch.mean(torch.sum(part1-part2, dim=1))
-    assert torch.isnan(result).sum() == 0
-    return result
+# def kl_divergence(dis_a, dis_b):
+#     disa = dis_a + 1e-6
+#     disb = dis_b + 1e-6
+#     loga = torch.log(disa)
+#     logb = torch.log(disb)
+#     part1 = dis_a*loga
+#     part2 = dis_a*logb
+#     result = torch.mean(torch.sum(part1-part2, dim=1))
+#     assert torch.isnan(result).sum() == 0
+#     return result
 
 def HG_theta(g, theta):
     # calculate 2*pi*p(cos(theta))
@@ -257,21 +257,19 @@ def loss_fn(prediction, gt):
     gmm = GMM(prediction[:, 0:num_of_Gaussian*3], theta)
     mean_sum_GMM = torch.mean(torch.sum(gmm, dim=1))
     
-    gx = gtNorm.restore(gt.to("cpu"))
+    gt = gtNorm.restore(gt.to("cpu"))
     gt = gt.to(device)
-    g = gx[:, 2]
+    g = gt[:, 2]
     p_theta = HG_theta(g, theta)
 
-    # loss1 = kl_divergence(gmm, p_theta)
-    # loss2 = kl_divergence(p_theta, gmm)
-    # loss_phase = (loss1 + loss2)/2.0
-    loss_phase = nn.MSELoss()(gmm, p_theta)
+    loss1 = nn.MSELoss()(gmm, p_theta)
+    
 
     uas = prediction[:, -2:]
     gt_uas = gt[:, :2]
     loss_uas = nn.MSELoss()(uas, gt_uas)  
 
-    loss = loss_phase + loss_uas
+    loss = loss1 + loss_uas
 
     return loss, mean_sum_GMM
 
@@ -419,7 +417,7 @@ start_epoch = 1
 n_epochs = 30
 test_loss_min = torch.tensor(np.Inf)
 
-checkpoint_path = 'checkpoints_MSE'
+checkpoint_path = 'checkpoints'
 if not os.path.exists(checkpoint_path):
     os.mkdir(checkpoint_path)
 
