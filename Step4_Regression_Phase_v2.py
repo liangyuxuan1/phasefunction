@@ -409,13 +409,10 @@ def show_test_samples():
         plt.imshow((x), cmap="hot")
     return figure
 
-<<<<<<< HEAD
 
 # ========================================================
 import time
 since = time.time()
-=======
->>>>>>> 0233c85ce297bf6c5ffdfd801b4e09d8b0374d41
 
 start_epoch = 1
 n_epochs = 30
