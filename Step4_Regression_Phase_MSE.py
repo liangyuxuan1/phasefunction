@@ -292,6 +292,7 @@ writer = SummaryWriter('training_results')
 def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
+    model.train()
     train_loss = 0
     for batch, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
