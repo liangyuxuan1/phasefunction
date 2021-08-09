@@ -213,7 +213,8 @@ def kl_divergence(dis_a, dis_b):
     logb = torch.log(disb)
     part1 = dis_a*loga
     part2 = dis_a*logb
-    result = torch.sum(part1-part2)
+    result = torch.mean(torch.sum(part1-part2, dim=1))
+    assert torch.isnan(result).sum() == 0
     return result
 
 def HG_theta(g, theta):
@@ -229,7 +230,8 @@ def HG_theta(g, theta):
 def normfun(x, mean, sigma):
     pi = np.pi
     pi = torch.tensor(pi)
-    G_x = torch.exp(-((x - mean)**2)/(2*sigma**2)) / (sigma * torch.sqrt(2*pi))
+    std = sigma + 1e-6
+    G_x = torch.exp(-((x - mean)**2)/(2*std**2)) / (std * torch.sqrt(2*pi))
     return G_x
 
 def GMM(nnOut, theta):
@@ -264,8 +266,8 @@ def loss_fn(prediction, gt):
     loss2 = kl_divergence(p_theta, gmm)
     loss_phase = (loss1 + loss2)/2.0
 
-    uas = prediction[:, num_of_Gaussian*3:num_of_Gaussian*3+2]
-    gt_uas = gt[:, 0:2]
+    uas = prediction[:, -2:]
+    gt_uas = gt[:, :2]
     loss_uas = nn.MSELoss()(uas, gt_uas)  
 
     loss = loss_phase + loss_uas
@@ -325,16 +327,17 @@ def test(dataloader, model, loss_fn):
             loss, mean_sum_GMM = loss_fn(pred, y)
             test_loss += loss.item()
             
-            # pred_error = (pred - y).abs()/y
-            # small_error_num = (pred_error <= 0.1).prod(1).sum().item()
-            # large_error_num = (pred_error >= 0.5).prod(1).sum().item()
-            # medium_error_num = len(pred_error) - small_error_num - large_error_num
-            # correct += [small_error_num, medium_error_num, large_error_num]
+            pred_uas = pred[:, -2:]
+            gt_uas = y[:, :2]
+            pred_error = (pred_uas - gt_uas).abs()/gt_uas
+            small_error_num = (pred_error <= 0.1).prod(1).sum().item()
+            large_error_num = (pred_error >= 0.5).prod(1).sum().item()
+            medium_error_num = len(pred_error) - small_error_num - large_error_num
+            correct += [small_error_num, medium_error_num, large_error_num]
     test_loss /= num_batches
     correct /= size
-    #print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
-    print(f"Test Avg loss: {test_loss:>10f} \n")
-
+    print(f"Test Error: \n Accuracy: {(100*correct[0]):>0.1f}%, {(100*correct[1]):>0.1f}%, {(100*correct[2]):>0.1f}%, Avg loss: {test_loss:>10f} \n")
+    
     return test_loss, correct
 
 # The training process is conducted over several iterations (epochs). 
@@ -406,21 +409,10 @@ def show_test_samples():
         plt.imshow((x), cmap="hot")
     return figure
 
-def plot_to_image(figure):
-    """Converts the matplotlib plot specified by 'figure' to a PNG image and
-    returns it. The supplied figure is closed and inaccessible after this call."""
-    # Save the plot to a PNG in memory.
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    # Closing the figure prevents it from being displayed directly inside
-    # the notebook.
-    plt.close(figure)
-    buf.seek(0)
-    # Convert PNG buffer to TF image
-    image = tf.image.decode_png(buf.getvalue(), channels=4)
-    # Add the batch dimension
-    image = tf.expand_dims(image, 0)
-    return image
+
+# ========================================================
+import time
+since = time.time()
 
 start_epoch = 1
 n_epochs = 30
@@ -432,13 +424,11 @@ if not os.path.exists(checkpoint_path):
 
 checkpoint_file = os.path.join(checkpoint_path, 'current_checkpoint.pt')
 best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
+is_best = False
 
 resume_training = False
 if resume_training:
     model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
-
-import time
-since = time.time()
 
 for epoch in range(start_epoch, n_epochs+1):
     print(f"Epoch {epoch}\n-------------------------------")
@@ -448,12 +438,18 @@ for epoch in range(start_epoch, n_epochs+1):
 
     writer.add_scalar('Train/Loss', train_loss, epoch)
     writer.add_scalar('Test/Loss', test_loss, epoch)
-    # writer.add_scalar('Accuracy: relative error < 10%', correct[0], epoch)
-    # writer.add_scalar('Accuracy: relative error 10-50%', correct[1], epoch)
-    # writer.add_scalar('Accuracy: relative error > 50%', correct[2], epoch)
+    writer.add_scalar('Accuracy: relative error < 10%', 100*correct[0], epoch)
+    writer.add_scalar('Accuracy: relative error 10-50%', 100*correct[1], epoch)
+    writer.add_scalar('Accuracy: relative error > 50%', 100*correct[2], epoch)
 
     figure = show_test_samples()
     writer.add_figure('Examples of Test Results', figure, epoch)
+
+    if test_loss < test_loss_min:
+        print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))
+        # save checkpoint as best model
+        test_loss_min = test_loss
+        is_best = True
 
     # create checkpoint variable and add important data
     checkpoint = {
@@ -462,16 +458,12 @@ for epoch in range(start_epoch, n_epochs+1):
         'state_dict': model.state_dict(),
         'optimizer': optimizer.state_dict(),
     }
-        
-    ## save the model if test loss has decreased
-    if test_loss < test_loss_min:
-        print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))
-        # save checkpoint as best model
-        test_loss_min = test_loss
-        save_ckp(checkpoint, checkpoint_file)
-        shutil.copyfile(checkpoint_file, best_model_file)   
-    else:
-        save_ckp(checkpoint, checkpoint_file)
+
+    # save checkpoint
+    save_ckp(checkpoint, checkpoint_file)
+    if is_best:
+        shutil.copyfile(checkpoint_file, best_model_file)
+        is_best = False   
 
 
 writer.close()
