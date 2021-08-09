@@ -134,7 +134,7 @@ gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-batch_size = 20
+batch_size = 60
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -409,10 +409,13 @@ def show_test_samples():
         plt.imshow((x), cmap="hot")
     return figure
 
+<<<<<<< HEAD
 
 # ========================================================
 import time
 since = time.time()
+=======
+>>>>>>> 0233c85ce297bf6c5ffdfd801b4e09d8b0374d41
 
 start_epoch = 1
 n_epochs = 30
