@@ -48,7 +48,7 @@ class CustomImageDataset(Dataset):
 
 img_path="imageCW_v3"
 training_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v3_image.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v4.csv"),
     img_dir = img_path
 )
 
@@ -78,9 +78,12 @@ training_data = CustomImageDataset(
 
 # imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
 
+# imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
+
 # ===============================================================
 # If there are too many images to load into memory in one batch
-train_dataloader = DataLoader(training_data, batch_size=6048)
+# train_dataloader = DataLoader(training_data, batch_size=6048) # for v3
+train_dataloader = DataLoader(training_data, batch_size=7560)   # for v4
 
 total_sum = 0
 for batch in train_dataloader: 

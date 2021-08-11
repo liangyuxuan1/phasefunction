@@ -83,6 +83,8 @@ class CustomImageDataset(Dataset):
 
 # imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
 
+# imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
+
 class gtNormalize(object):
     def __init__(self, minV, maxV):
         self.minV = torch.tensor(minV)
@@ -102,14 +104,14 @@ class gtNormalize(object):
 
 img_path="imageCW_v3"
 train_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v3_image.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v4.csv"),
     img_dir = img_path,
     transform = transforms.Normalize(0.0026, 0.9595),
     target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 )
 
 test_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "testDataCW_v3_image.csv"),
+    annotations_file = os.path.join(img_path, "valDataCW_v4.csv"),
     img_dir = img_path,
     transform = transforms.Normalize(0.0026, 0.9595),
     target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
@@ -134,7 +136,11 @@ gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
+<<<<<<< HEAD
 batch_size = 60
+=======
+batch_size = 120
+>>>>>>> 7e2d6596e0a929ff81babe557eaa86bf18181d05
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
