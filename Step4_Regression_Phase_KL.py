@@ -134,7 +134,7 @@ gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-batch_size = 60
+batch_size = 200
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -291,6 +291,7 @@ writer = SummaryWriter('training_results')
 def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
+    model.train()
     train_loss = 0
     for batch, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
@@ -418,7 +419,7 @@ start_epoch = 1
 n_epochs = 30
 test_loss_min = torch.tensor(np.Inf)
 
-checkpoint_path = 'checkpoints'
+checkpoint_path = 'checkpoints_KL'
 if not os.path.exists(checkpoint_path):
     os.mkdir(checkpoint_path)
 
