@@ -136,11 +136,7 @@ gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-<<<<<<< HEAD
-batch_size = 60
-=======
 batch_size = 120
->>>>>>> 7e2d6596e0a929ff81babe557eaa86bf18181d05
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -402,19 +398,38 @@ def show_test_samples():
     for i in range (cols*rows):
         sample_idx[i] = np.random.randint(numEachUaGroup) + i*numEachUaGroup
     
+    model.eval()
+
     figure = plt.figure(figsize=(8, 4))
     for i in range(cols * rows):
         idx = sample_idx[i]
-        img, gt = test_data[idx]
-        x = img.squeeze()
+        x, gt = test_data[idx]
+        x = x.reshape(1,1,500,500)
+        gt = gt.reshape(1,-1)
         gt = gtNorm.restore(gt)
+        x, gt = x.to(device), gt.to(device)
+
+        pred = model(x)
+        loss, mean_sum_GMM = loss_fn(pred, gt)
+
+        gmm = GMM(pred[:, 0:num_of_Gaussian*3], theta)
+        g = gt[:, 2]
+        p_theta = HG_theta(g, theta)
 
         figure.add_subplot(rows, cols, i+1)
-        figtitle = 'ua=%.3f, us=%.2f, g=%.1f' %(gt[0], gt[1], gt[2])
+        figtitle = 'ua=%.3f, us=%.2f, g=%.1f \n loss=%.4f' %(gt[0, 0], gt[0, 1], gt[0, 2], loss.item())
         plt.title(figtitle)
-        plt.axis("off")
-        #x = torch.float_power(img.squeeze(), 0.1)
-        plt.imshow((x), cmap="hot")
+        plt.axis("on")
+        # plt.imshow((x), cmap="hot")
+        gmm, p_theta = gmm.to("cpu"), p_theta.to("cpu")
+        gmm = gmm.detach().numpy()
+        p_theta = p_theta.detach().numpy()
+        px = theta.to("cpu")
+        px = px.detach().numpy()
+        plt.plot(px, gmm.squeeze())
+        plt.plot(px, p_theta.squeeze())
+
+    plt.show()
     return figure
 
 
@@ -434,9 +449,10 @@ checkpoint_file = os.path.join(checkpoint_path, 'current_checkpoint.pt')
 best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
 is_best = False
 
-resume_training = False
+resume_training = True
 if resume_training:
     model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
+    show_test_samples()
 
 for epoch in range(start_epoch, n_epochs+1):
     print(f"Epoch {epoch}\n-------------------------------")
@@ -472,6 +488,9 @@ for epoch in range(start_epoch, n_epochs+1):
     if is_best:
         shutil.copyfile(checkpoint_file, best_model_file)
         is_best = False   
+
+    time_elapsed = time.time() - since
+    print('Epoch {:d} complete in {:.0f}m {:.0f}s'.format(epoch, time_elapsed // 60 , time_elapsed % 60))
 
 
 writer.close()
