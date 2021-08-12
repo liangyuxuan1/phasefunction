@@ -83,8 +83,6 @@ class CustomImageDataset(Dataset):
 
 # imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
 
-# imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
-
 class gtNormalize(object):
     def __init__(self, minV, maxV):
         self.minV = torch.tensor(minV)
@@ -104,14 +102,14 @@ class gtNormalize(object):
 
 img_path="imageCW_v3"
 train_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v4.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v3_image.csv"),
     img_dir = img_path,
     transform = transforms.Normalize(0.0026, 0.9595),
     target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 )
 
 test_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "valDataCW_v4.csv"),
+    annotations_file = os.path.join(img_path, "testDataCW_v3_image.csv"),
     img_dir = img_path,
     transform = transforms.Normalize(0.0026, 0.9595),
     target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
@@ -136,11 +134,7 @@ gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 # Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
 
 # Create data loaders.
-<<<<<<< HEAD
 batch_size = 60
-=======
-batch_size = 120
->>>>>>> 7e2d6596e0a929ff81babe557eaa86bf18181d05
 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 test_dataloader = DataLoader(test_data, batch_size=batch_size)
 
@@ -212,16 +206,16 @@ summary(model, (1, 500, 500))
 # Optimizing the Model Parameters
 # To train a model, we need a loss function and an optimizer.
 
-def kl_divergence(dis_a, dis_b):
-    disa = dis_a + 1e-6
-    disb = dis_b + 1e-6
-    loga = torch.log(disa)
-    logb = torch.log(disb)
-    part1 = dis_a*loga
-    part2 = dis_a*logb
-    result = torch.mean(torch.sum(part1-part2, dim=1))
-    assert torch.isnan(result).sum() == 0
-    return result
+# def kl_divergence(dis_a, dis_b):
+#     disa = dis_a + 1e-6
+#     disb = dis_b + 1e-6
+#     loga = torch.log(disa)
+#     logb = torch.log(disb)
+#     part1 = dis_a*loga
+#     part2 = dis_a*logb
+#     result = torch.mean(torch.sum(part1-part2, dim=1))
+#     assert torch.isnan(result).sum() == 0
+#     return result
 
 def HG_theta(g, theta):
     # calculate 2*pi*p(cos(theta))
@@ -263,21 +257,19 @@ def loss_fn(prediction, gt):
     gmm = GMM(prediction[:, 0:num_of_Gaussian*3], theta)
     mean_sum_GMM = torch.mean(torch.sum(gmm, dim=1))
     
-    gx = gtNorm.restore(gt.to("cpu"))
+    gt = gtNorm.restore(gt.to("cpu"))
     gt = gt.to(device)
-    g = gx[:, 2]
+    g = gt[:, 2]
     p_theta = HG_theta(g, theta)
 
-    # loss1 = kl_divergence(gmm, p_theta)
-    # loss2 = kl_divergence(p_theta, gmm)
-    # loss_phase = (loss1 + loss2)/2.0
-    loss_phase = nn.MSELoss()(gmm, p_theta)
+    loss1 = nn.MSELoss()(gmm, p_theta)
+    
 
     uas = prediction[:, -2:]
     gt_uas = gt[:, :2]
     loss_uas = nn.MSELoss()(uas, gt_uas)  
 
-    loss = loss_phase + loss_uas
+    loss = loss1 + loss_uas
 
     return loss, mean_sum_GMM
 
@@ -298,7 +290,6 @@ writer = SummaryWriter('training_results')
 def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
-    model.train()
     train_loss = 0
     for batch, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
@@ -397,7 +388,7 @@ def load_ckp(checkpoint_fpath, model, optimizer):
 
 def show_test_samples():
     cols, rows = 4, 2
-    numEachUaGroup = 9*21*10
+    numEachUaGroup = 9*21*20
     sample_idx = np.zeros(cols*rows, dtype=np.int32)
     for i in range (cols*rows):
         sample_idx[i] = np.random.randint(numEachUaGroup) + i*numEachUaGroup
@@ -426,7 +417,7 @@ start_epoch = 1
 n_epochs = 30
 test_loss_min = torch.tensor(np.Inf)
 
-checkpoint_path = 'checkpoints_MSE'
+checkpoint_path = 'checkpoints'
 if not os.path.exists(checkpoint_path):
     os.mkdir(checkpoint_path)
 
@@ -450,8 +441,8 @@ for epoch in range(start_epoch, n_epochs+1):
     writer.add_scalar('Accuracy: relative error 10-50%', 100*correct[1], epoch)
     writer.add_scalar('Accuracy: relative error > 50%', 100*correct[2], epoch)
 
-    # figure = show_test_samples()
-    # writer.add_figure('Examples of Test Results', figure, epoch)
+    figure = show_test_samples()
+    writer.add_figure('Examples of Test Results', figure, epoch)
 
     if test_loss < test_loss_min:
         print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))

@@ -117,17 +117,6 @@ test_data = CustomImageDataset(
 
 gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 
-# figure = plt.figure(figsize=(8, 8))
-# cols, rows = 3, 3
-# for i in range(1, cols * rows + 1):
-#     sample_idx = torch.randint(len(training_data), size=(1,)).item()
-#     img, label = training_data[sample_idx]
-#     figure.add_subplot(rows, cols, i)
-#     figtitle = 'g=%.2f'%label
-#     plt.title(figtitle)
-#     plt.axis("off")
-#     plt.imshow(np.log(np.log(img.squeeze()+1)+1), cmap="hot")
-# plt.show()
 
 # We pass the Dataset as an argument to DataLoader. 
 # This wraps an iterable over our dataset, and supports automatic batching, sampling, shuffling and multiprocess data loading. 
@@ -465,6 +454,7 @@ for epoch in range(start_epoch, n_epochs+1):
     if is_best:
         shutil.copyfile(checkpoint_file, best_model_file)
         is_best = False   
+
 
 
 writer.close()
