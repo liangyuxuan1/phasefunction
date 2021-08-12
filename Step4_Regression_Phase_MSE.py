@@ -393,7 +393,7 @@ def load_ckp(checkpoint_fpath, model, optimizer):
 
 def show_test_samples():
     cols, rows = 4, 2
-    numEachUaGroup = 9*21*20
+    numEachUaGroup = 9*21*10
     sample_idx = np.zeros(cols*rows, dtype=np.int32)
     for i in range (cols*rows):
         sample_idx[i] = np.random.randint(numEachUaGroup) + i*numEachUaGroup
@@ -446,8 +446,8 @@ for epoch in range(start_epoch, n_epochs+1):
     writer.add_scalar('Accuracy: relative error 10-50%', 100*correct[1], epoch)
     writer.add_scalar('Accuracy: relative error > 50%', 100*correct[2], epoch)
 
-    figure = show_test_samples()
-    writer.add_figure('Examples of Test Results', figure, epoch)
+    # figure = show_test_samples()
+    # writer.add_figure('Examples of Test Results', figure, epoch)
 
     if test_loss < test_loss_min:
         print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))
