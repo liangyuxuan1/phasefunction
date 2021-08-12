@@ -137,8 +137,8 @@ gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
 
 # Create data loaders.
 batch_size = 120
-train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-test_dataloader = DataLoader(test_data, batch_size=batch_size)
+train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True)
+test_dataloader = DataLoader(test_data, batch_size=batch_size, pin_memory=True)
 
 # Creating Models
 # To define a neural network in PyTorch, we create a class that inherits from nn.Module. 
@@ -404,23 +404,23 @@ def show_test_samples():
     for i in range(cols * rows):
         idx = sample_idx[i]
         x, gt = test_data[idx]
-        x = x.reshape(1,1,500,500)
+        x = x.reshape(1,*x.shape)
         gt = gt.reshape(1,-1)
-        gt = gtNorm.restore(gt)
         x, gt = x.to(device), gt.to(device)
 
         pred = model(x)
-        loss, mean_sum_GMM = loss_fn(pred, gt)
+        loss, _ = loss_fn(pred, gt)
 
         gmm = GMM(pred[:, 0:num_of_Gaussian*3], theta)
+        gt = gtNorm.restore(gt.to("cpu"))
         g = gt[:, 2]
+        g = g.to(device)
         p_theta = HG_theta(g, theta)
 
         figure.add_subplot(rows, cols, i+1)
         figtitle = 'ua=%.3f, us=%.2f, g=%.1f \n loss=%.4f' %(gt[0, 0], gt[0, 1], gt[0, 2], loss.item())
         plt.title(figtitle)
         plt.axis("on")
-        # plt.imshow((x), cmap="hot")
         gmm, p_theta = gmm.to("cpu"), p_theta.to("cpu")
         gmm = gmm.detach().numpy()
         p_theta = p_theta.detach().numpy()
@@ -429,74 +429,77 @@ def show_test_samples():
         plt.plot(px, gmm.squeeze())
         plt.plot(px, p_theta.squeeze())
 
-    plt.show()
+    mng = plt.get_current_fig_manager()
+    mng.window.showMaximized()
+    # plt.show()
     return figure
 
 
 # ========================================================
-import time
-since = time.time()
+if __name__=='__main__':
 
-start_epoch = 1
-n_epochs = 30
-test_loss_min = torch.tensor(np.Inf)
+    import time
+    since = time.time()
 
-checkpoint_path = 'checkpoints_MSE'
-if not os.path.exists(checkpoint_path):
-    os.mkdir(checkpoint_path)
+    start_epoch = 1
+    n_epochs = 30
+    test_loss_min = torch.tensor(np.Inf)
 
-checkpoint_file = os.path.join(checkpoint_path, 'current_checkpoint.pt')
-best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
-is_best = False
+    checkpoint_path = 'checkpoints_MSE'
+    if not os.path.exists(checkpoint_path):
+        os.mkdir(checkpoint_path)
 
-resume_training = True
-if resume_training:
-    model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
-    show_test_samples()
+    checkpoint_file = os.path.join(checkpoint_path, 'current_checkpoint.pt')
+    best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
+    is_best = False
 
-for epoch in range(start_epoch, n_epochs+1):
-    print(f"Epoch {epoch}\n-------------------------------")
+    resume_training = True
+    if resume_training:
+        model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
 
-    train_loss = train(train_dataloader, model, loss_fn, optimizer)
-    test_loss, correct = test(test_dataloader, model, loss_fn)
+    for epoch in range(start_epoch, n_epochs+1):
+        print(f"Epoch {epoch}\n-------------------------------")
 
-    writer.add_scalar('Train/Loss', train_loss, epoch)
-    writer.add_scalar('Test/Loss', test_loss, epoch)
-    writer.add_scalar('Accuracy: relative error < 10%', 100*correct[0], epoch)
-    writer.add_scalar('Accuracy: relative error 10-50%', 100*correct[1], epoch)
-    writer.add_scalar('Accuracy: relative error > 50%', 100*correct[2], epoch)
+        train_loss = train(train_dataloader, model, loss_fn, optimizer)
+        test_loss, correct = test(test_dataloader, model, loss_fn)
 
-    # figure = show_test_samples()
-    # writer.add_figure('Examples of Test Results', figure, epoch)
+        writer.add_scalar('Train/Loss', train_loss, epoch)
+        writer.add_scalar('Test/Loss', test_loss, epoch)
+        writer.add_scalar('Accuracy: relative error < 10%', 100*correct[0], epoch)
+        writer.add_scalar('Accuracy: relative error 10-50%', 100*correct[1], epoch)
+        writer.add_scalar('Accuracy: relative error > 50%', 100*correct[2], epoch)
 
-    if test_loss < test_loss_min:
-        print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))
-        # save checkpoint as best model
-        test_loss_min = test_loss
-        is_best = True
+        figure = show_test_samples()
+        writer.add_figure('Examples of Test Results', figure, epoch)
 
-    # create checkpoint variable and add important data
-    checkpoint = {
-        'epoch': epoch + 1,
-        'test_loss_min': test_loss_min,
-        'state_dict': model.state_dict(),
-        'optimizer': optimizer.state_dict(),
-    }
+        if test_loss < test_loss_min:
+            print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))
+            # save checkpoint as best model
+            test_loss_min = test_loss
+            is_best = True
 
-    # save checkpoint
-    save_ckp(checkpoint, checkpoint_file)
-    if is_best:
-        shutil.copyfile(checkpoint_file, best_model_file)
-        is_best = False   
+        # create checkpoint variable and add important data
+        checkpoint = {
+            'epoch': epoch + 1,
+            'test_loss_min': test_loss_min,
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+        }
+
+        # save checkpoint
+        save_ckp(checkpoint, checkpoint_file)
+        if is_best:
+            shutil.copyfile(checkpoint_file, best_model_file)
+            is_best = False   
+
+        time_elapsed = time.time() - since
+        print('Epoch {:d} complete in {:.0f}m {:.0f}s'.format(epoch, time_elapsed // 60 , time_elapsed % 60))
+
+
+    writer.close()
 
     time_elapsed = time.time() - since
-    print('Epoch {:d} complete in {:.0f}m {:.0f}s'.format(epoch, time_elapsed // 60 , time_elapsed % 60))
-
-
-writer.close()
-
-time_elapsed = time.time() - since
-print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60 , time_elapsed % 60))
+    print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60 , time_elapsed % 60))
 
 
 
