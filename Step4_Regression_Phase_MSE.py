@@ -391,7 +391,7 @@ def load_ckp(checkpoint_fpath, model, optimizer):
 # show test results and add the figure in writter
 # https://tensorflow.google.cn/tensorboard/image_summaries?hl=zh-cn
 
-def show_test_samples():
+def show_test_samples(showFig=False):
     cols, rows = 4, 2
     numEachUaGroup = 9*21*10
     sample_idx = np.zeros(cols*rows, dtype=np.int32)
@@ -400,7 +400,7 @@ def show_test_samples():
     
     model.eval()
 
-    figure = plt.figure(figsize=(8, 4))
+    figure = plt.figure(figsize=(16, 8))
     for i in range(cols * rows):
         idx = sample_idx[i]
         x, gt = test_data[idx]
@@ -431,7 +431,8 @@ def show_test_samples():
 
     mng = plt.get_current_fig_manager()
     mng.window.showMaximized()
-    # plt.show()
+    if showFig:
+        plt.show()
     return figure
 
 
@@ -501,6 +502,10 @@ if __name__=='__main__':
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60 , time_elapsed % 60))
 
-
+    # finally, show results of best model
+    model, optimizer, start_epoch, test_loss_min = load_ckp(best_model_file, model, optimizer)
+    show_test_samples(showFig=True)
+    show_test_samples(showFig=True)
+    show_test_samples(showFig=True)
 
 
