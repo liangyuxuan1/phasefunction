@@ -102,7 +102,7 @@ class gtNormalize(object):
         gt = (gt - 0.01)/k + self.minV
         return gt
 
-img_path="imageCW_v3"
+img_path="H:\imageCW_v3"
 train_data = CustomImageDataset(
     annotations_file = os.path.join(img_path, "trainDataCW_v4.csv"),
     img_dir = img_path,
@@ -150,7 +150,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print("Using {} device".format(device))
 
 # Define model
-num_of_Gaussian = 20
+num_of_Gaussian = 10
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
@@ -454,7 +454,7 @@ if __name__=='__main__':
     best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
     is_best = False
 
-    resume_training = True
+    resume_training = False
     if resume_training:
         model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
 
