@@ -80,7 +80,7 @@ training_data = CustomImageDataset(
 
 # imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
 
-# trainDataCW_v3_ExcludeExtremes, 500x500, training number = 80, mean = 0.0026, std = 0.9595
+# trainDataCW_v3_ExcludeExtremes, 500x500, training number = 80, mean = 0.0028, std = 0.8302
 
 # ===============================================================
 # If there are too many images to load into memory in one batch
