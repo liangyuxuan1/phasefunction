@@ -400,7 +400,7 @@ def show_test_samples(showFig=False):
     
     model.eval()
 
-    figure = plt.figure(figsize=(16, 8))
+    figure = plt.figure(figsize=(16, 9))
     for i in range(cols * rows):
         idx = sample_idx[i]
         x, gt = test_data[idx]
