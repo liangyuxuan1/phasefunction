@@ -85,6 +85,8 @@ class CustomImageDataset(Dataset):
 
 # imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
 
+# trainDataCW_v3_ExcludeExtremes, 500x500, training number = 80, mean = 0.0028, std = 0.8302
+
 class gtNormalize(object):
     def __init__(self, minV, maxV):
         self.minV = torch.tensor(minV)
@@ -104,17 +106,17 @@ class gtNormalize(object):
 
 img_path="H:\imageCW_v3"
 train_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v4.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v3_ExcludeExtremes_small.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0026, 0.9595),
-    target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
+    transform = transforms.Normalize(0.0028, 0.8302),
+    target_transform = gtNormalize(minV = [0.0010, 0.01, -0.9], maxV = [10.0, 100.0, 0.9])
 )
 
 test_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "valDataCW_v4.csv"),
+    annotations_file = os.path.join(img_path, "valDataCW_v3_ExcludeExtremes_small.csv"),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0026, 0.9595),
-    target_transform = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
+    transform = transforms.Normalize(0.0028, 0.8302),
+    target_transform = gtNormalize(minV = [0.0010, 0.01, -0.9], maxV = [10.0, 100.0, 0.9])
 )
 
 gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
@@ -248,7 +250,8 @@ def GMM(nnOut, theta):
     for i in range(bSize):
         for j in range(num_of_Gaussian):
             gmm[i,:] += (w[i, j]/w_sum[i]) * normfun(theta, m[i, j], d[i, j])
-        #print(torch.sum(gmm[i,:]))
+        sumGmm = torch.sum(gmm[i,:]) * 0.01     # discretization bin = 0.01 radian
+        gmm[i,:] /= sumGmm      # normalize to gurrantee the sum=1
     return gmm
 
 # loss_fn = nn.MSELoss()
@@ -400,7 +403,7 @@ def show_test_samples(showFig=False):
     
     model.eval()
 
-    figure = plt.figure(figsize=(16, 8))
+    figure = plt.figure(figsize=(16, 9))
     for i in range(cols * rows):
         idx = sample_idx[i]
         x, gt = test_data[idx]
