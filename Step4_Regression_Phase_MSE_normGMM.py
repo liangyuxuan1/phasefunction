@@ -105,21 +105,28 @@ class gtNormalize(object):
         return gt
 
 img_path="H:\imageCW_v3"
+trainDataListFile = "trainDataCW_v3_ExcludeExtremes_small.csv"
+valDataListfile   = "valDataCW_v3_ExcludeExtremes_small.csv"
+meanPixelVal = 0.0028
+stdPixelVal  = 0.8302
+minParaVal   = [0.0010, 0.01, -0.9]
+maxParaVal   = [10.0, 100.0, 0.9]
+
 train_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v3_ExcludeExtremes_small.csv"),
+    annotations_file = os.path.join(img_path, trainDataListFile),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0028, 0.8302),
-    target_transform = gtNormalize(minV = [0.0010, 0.01, -0.9], maxV = [10.0, 100.0, 0.9])
+    transform = transforms.Normalize(meanPixelVal, stdPixelVal),
+    target_transform = gtNormalize(minParaVal, maxParaVal)
 )
 
 test_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "valDataCW_v3_ExcludeExtremes_small.csv"),
+    annotations_file = os.path.join(img_path, valDataListfile),
     img_dir = img_path,
-    transform = transforms.Normalize(0.0028, 0.8302),
-    target_transform = gtNormalize(minV = [0.0010, 0.01, -0.9], maxV = [10.0, 100.0, 0.9])
+    transform = transforms.Normalize(meanPixelVal, stdPixelVal),
+    target_transform = gtNormalize(minParaVal, maxParaVal)
 )
 
-gtNorm = gtNormalize(minV = [0.0010, 0.01, -1.0], maxV = [10.0, 100.0, 1.0])
+gtNorm = gtNormalize(minParaVal, maxParaVal)
 
 # figure = plt.figure(figsize=(8, 8))
 # cols, rows = 3, 3
@@ -288,9 +295,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=5e-3)
 # TRICK THREE: use stepwise decreasing learning rate. 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-from torch.utils.tensorboard import SummaryWriter 
-writer = SummaryWriter('training_results')
-
 # In a single training loop, the model makes predictions on the training dataset (fed to it in batches), 
 # and backpropagates the prediction error to adjust the model’s parameters.
 
@@ -359,6 +363,7 @@ def test(dataloader, model, loss_fn):
 # https://zhuanlan.zhihu.com/p/103630393 , this works
 # 不要安装pytorch profiler, 如果安装了，pip uninstall torch-tb-profiler. 否则tensorboard load 数据有问题
 
+
 # How To Save and Load Model In PyTorch With A Complete Example
 # https://towardsdatascience.com/how-to-save-and-load-a-model-in-pytorch-with-a-complete-example-c2920e617dee
 #
@@ -396,14 +401,14 @@ def load_ckp(checkpoint_fpath, model, optimizer):
 
 def show_test_samples(showFig=False):
     cols, rows = 4, 2
-    numEachUaGroup = 9*21*10
+    numEachUaGroup = len(test_data)/(cols*rows)
     sample_idx = np.zeros(cols*rows, dtype=np.int32)
     for i in range (cols*rows):
-        sample_idx[i] = np.random.randint(numEachUaGroup) + i*numEachUaGroup
+       sample_idx[i] = np.random.randint(numEachUaGroup) + i*numEachUaGroup
     
     model.eval()
 
-    figure = plt.figure(figsize=(16, 9))
+    figure = plt.figure(figsize=(20, 10))
     for i in range(cols * rows):
         idx = sample_idx[i]
         x, gt = test_data[idx]
@@ -449,7 +454,7 @@ if __name__=='__main__':
     n_epochs = 30
     test_loss_min = torch.tensor(np.Inf)
 
-    checkpoint_path = 'checkpoints_MSE'
+    checkpoint_path = 'training_results'
     if not os.path.exists(checkpoint_path):
         os.mkdir(checkpoint_path)
 
@@ -461,8 +466,13 @@ if __name__=='__main__':
     if resume_training:
         model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
 
+    # show_test_samples(showFig=True)
+
+    from torch.utils.tensorboard import SummaryWriter 
+    writer = SummaryWriter(checkpoint_path)
+
     for epoch in range(start_epoch, n_epochs+1):
-        print(f"Epoch {epoch}\n-------------------------------")
+        print(f"Epoch {epoch}")
 
         train_loss = train(train_dataloader, model, loss_fn, optimizer)
         test_loss, correct = test(test_dataloader, model, loss_fn)
