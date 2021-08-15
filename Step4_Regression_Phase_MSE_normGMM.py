@@ -11,13 +11,11 @@ from torchvision import datasets
 from torchvision import transforms
 from torchvision.transforms import ToTensor, Lambda, Compose
 
-import shutil
-import io
-
 # pip install matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import string
+import time
+import shutil
 
 # OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized.
 import os
@@ -73,20 +71,6 @@ class CustomImageDataset(Dataset):
 
         return image, gt
 
-# TRICK ONE to improve the performance: standardize the data.
-# Need to calculate the mean and std of the dataset first.
-# imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
-# imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
-# imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, sta = 0.4645
-# imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, sta = 0.5010
-# gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
-
-# imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
-
-# imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
-
-# trainDataCW_v3_ExcludeExtremes, 500x500, training number = 80, mean = 0.0028, std = 0.8302
-
 class gtNormalize(object):
     def __init__(self, minV, maxV):
         self.minV = torch.tensor(minV)
@@ -104,30 +88,6 @@ class gtNormalize(object):
         gt = (gt - 0.01)/k + self.minV
         return gt
 
-img_path="H:\imageCW_v3"
-trainDataListFile = "trainDataCW_v3_ExcludeExtremes_small.csv"
-valDataListfile   = "valDataCW_v3_ExcludeExtremes_small.csv"
-meanPixelVal = 0.0028
-stdPixelVal  = 0.8302
-minParaVal   = [0.0010, 0.01, -0.9]
-maxParaVal   = [10.0, 100.0, 0.9]
-
-train_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, trainDataListFile),
-    img_dir = img_path,
-    transform = transforms.Normalize(meanPixelVal, stdPixelVal),
-    target_transform = gtNormalize(minParaVal, maxParaVal)
-)
-
-test_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, valDataListfile),
-    img_dir = img_path,
-    transform = transforms.Normalize(meanPixelVal, stdPixelVal),
-    target_transform = gtNormalize(minParaVal, maxParaVal)
-)
-
-gtNorm = gtNormalize(minParaVal, maxParaVal)
-
 # figure = plt.figure(figsize=(8, 8))
 # cols, rows = 3, 3
 # for i in range(1, cols * rows + 1):
@@ -140,26 +100,10 @@ gtNorm = gtNormalize(minParaVal, maxParaVal)
 #     plt.imshow(np.log(np.log(img.squeeze()+1)+1), cmap="hot")
 # plt.show()
 
-# We pass the Dataset as an argument to DataLoader. 
-# This wraps an iterable over our dataset, and supports automatic batching, sampling, shuffling and multiprocess data loading. 
-# Here we define a batch size of 64, i.e. each element in the dataloader iterable will return a batch of 64 features and labels.
-
-# Create data loaders.
-batch_size = 120
-train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True)
-test_dataloader = DataLoader(test_data, batch_size=batch_size, pin_memory=True)
-
 # Creating Models
 # To define a neural network in PyTorch, we create a class that inherits from nn.Module. 
 # We define the layers of the network in the __init__ function and specify how data will pass through the network in the forward function. 
 # To accelerate operations in the neural network, we move it to the GPU if available.
-
-# Get cpu or gpu device for training.
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print("Using {} device".format(device))
-
-# Define model
-num_of_Gaussian = 10
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super(NeuralNetwork, self).__init__()
@@ -208,15 +152,8 @@ class NeuralNetwork(nn.Module):
 
         return pred
 
-model = NeuralNetwork().to(device)
-# print(model)
-# pip install torchsummary
-from torchsummary import summary
-summary(model, (1, 500, 500))
-
 # Optimizing the Model Parameters
 # To train a model, we need a loss function and an optimizer.
-
 def kl_divergence(dis_a, dis_b):
     disa = dis_a + 1e-6
     disb = dis_b + 1e-6
@@ -261,13 +198,8 @@ def GMM(nnOut, theta):
         gmm[i,:] /= sumGmm      # normalize to gurrantee the sum=1
     return gmm
 
-# loss_fn = nn.MSELoss()
-theta = np.arange(0, np.pi, 0.01)
-theta = torch.from_numpy(theta).to(device)
-
 def loss_fn(prediction, gt):
     gmm = GMM(prediction[:, 0:num_of_Gaussian*3], theta)
-    mean_sum_GMM = torch.mean(torch.sum(gmm, dim=1))
     
     gx = gtNorm.restore(gt.to("cpu"))
     gt = gt.to(device)
@@ -285,42 +217,36 @@ def loss_fn(prediction, gt):
 
     loss = loss_phase + loss_uas
 
-    return loss, mean_sum_GMM
-
-
-# TRICK TWO: use SGDM, stochastic gradient descent with momentum.
-# optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-3)
-optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=5e-3)
-
-# TRICK THREE: use stepwise decreasing learning rate. 
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    return loss
 
 # In a single training loop, the model makes predictions on the training dataset (fed to it in batches), 
 # and backpropagates the prediction error to adjust the model’s parameters.
-
 def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     model.train()
     train_loss = 0
+    current = 0
     for batch, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
 
         # Compute prediction error
         pred = model(X)
-        loss, mean_sum_GMM = loss_fn(pred, y)
+        loss = loss_fn(pred, y)
         train_loss += loss.item()
 
         # Backpropagation
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        if batch % 10 == 0:
-            loss, current = loss.item(), batch * len(X)
-            print(f"loss: {loss:>10f}  [{current:>5d}/{size:>5d}], mean sum GMM: {mean_sum_GMM:>5f}")
+        
+        current += len(X)
+        if (batch+1) % 10 == 0:
+            print(f"loss: {loss.item():>0.6f}  [{current:>5d}/{size:>5d}]")
 
     train_loss /= num_batches
+    print(f"loss: {train_loss:>10f}  [{current:>5d}/{size:>5d}]")
+
     scheduler.step()
 
     return train_loss
@@ -335,7 +261,7 @@ def test(dataloader, model, loss_fn):
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
             pred = model(X)
-            loss, mean_sum_GMM = loss_fn(pred, y)
+            loss = loss_fn(pred, y)
             test_loss += loss.item()
             
             pred_uas = pred[:, -2:]
@@ -362,7 +288,6 @@ def test(dataloader, model, loss_fn):
 
 # https://zhuanlan.zhihu.com/p/103630393 , this works
 # 不要安装pytorch profiler, 如果安装了，pip uninstall torch-tb-profiler. 否则tensorboard load 数据有问题
-
 
 # How To Save and Load Model In PyTorch With A Complete Example
 # https://towardsdatascience.com/how-to-save-and-load-a-model-in-pytorch-with-a-complete-example-c2920e617dee
@@ -399,9 +324,9 @@ def load_ckp(checkpoint_fpath, model, optimizer):
 # show test results and add the figure in writter
 # https://tensorflow.google.cn/tensorboard/image_summaries?hl=zh-cn
 
-def show_test_samples(showFig=False):
+def show_result_samples(dataset, showFig=False):
     cols, rows = 4, 2
-    numEachUaGroup = len(test_data)/(cols*rows)
+    numEachUaGroup = len(dataset)/(cols*rows)
     sample_idx = np.zeros(cols*rows, dtype=np.int32)
     for i in range (cols*rows):
        sample_idx[i] = np.random.randint(numEachUaGroup) + i*numEachUaGroup
@@ -411,13 +336,13 @@ def show_test_samples(showFig=False):
     figure = plt.figure(figsize=(20, 10))
     for i in range(cols * rows):
         idx = sample_idx[i]
-        x, gt = test_data[idx]
+        x, gt = dataset[idx]
         x = x.reshape(1,*x.shape)
         gt = gt.reshape(1,-1)
         x, gt = x.to(device), gt.to(device)
 
         pred = model(x)
-        loss, _ = loss_fn(pred, gt)
+        loss = loss_fn(pred, gt)
 
         gmm = GMM(pred[:, 0:num_of_Gaussian*3], theta)
         gt = gtNorm.restore(gt.to("cpu"))
@@ -444,11 +369,78 @@ def show_test_samples(showFig=False):
     return figure
 
 
-# ========================================================
+# ==============================================================================================================
 if __name__=='__main__':
 
-    import time
-    since = time.time()
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Using {} device".format(device))
+
+    # Need to calculate the mean and std of the dataset first.
+
+    # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
+    # imageCW, 500x500, g=-1:0.025:1, training number = 100, mean = 0.0068, std = 1.2836
+    # imageCW, 500*500, 14 materials, training number = 500, mean = 0.0040, sta = 0.4645
+    # imageCW, 500*500, 12 materials, training number = 500, mean = 0.0047, sta = 0.5010
+    # gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
+
+    # imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
+    # imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
+    # trainDataCW_v3_ExcludeExtremes, 500x500, training number = 80, mean = 0.0028, std = 0.8302
+
+    img_path = "H:\imageCW_v3"
+    test_img_path = "imageCW_test"
+    trainDataListFile = "trainDataCW_v3_ExcludeExtremes_small.csv"
+    valDataListFile   = "valDataCW_v3_ExcludeExtremes_small.csv"
+    testDataListFile  = "testDataCW_ExcludeExtremes.csv"
+    meanPixelVal = 0.0028
+    stdPixelVal  = 0.8302
+    minParaVal   = [0.0010, 0.01, -0.9]
+    maxParaVal   = [10.0, 100.0, 0.9]
+
+    train_data = CustomImageDataset(
+        annotations_file = os.path.join(img_path, trainDataListFile),
+        img_dir = img_path,
+        transform = transforms.Normalize(meanPixelVal, stdPixelVal),
+        target_transform = gtNormalize(minParaVal, maxParaVal)
+    )
+
+    val_data = CustomImageDataset(
+        annotations_file = os.path.join(img_path, valDataListFile),
+        img_dir = img_path,
+        transform = transforms.Normalize(meanPixelVal, stdPixelVal),
+        target_transform = gtNormalize(minParaVal, maxParaVal)
+    )
+
+    test_data = CustomImageDataset(
+        annotations_file = os.path.join(test_img_path, testDataListFile),
+        img_dir = test_img_path,
+        transform = transforms.Normalize(meanPixelVal, stdPixelVal),
+        target_transform = gtNormalize(minParaVal, maxParaVal)
+    )
+
+    gtNorm = gtNormalize(minParaVal, maxParaVal)
+
+    # Create data loaders.
+    batch_size = 120
+    train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True)
+    val_dataloader   = DataLoader(val_data, batch_size=batch_size, pin_memory=True)
+    test_dataloader  = DataLoader(test_data, batch_size=batch_size, pin_memory=True)
+
+    # Define model
+    num_of_Gaussian = 10
+    model = NeuralNetwork().to(device)
+    # print(model)
+    # pip install torchsummary
+    from torchsummary import summary
+    summary(model, (1, 500, 500))
+
+    # loss_fn = nn.MSELoss()
+    theta = np.arange(0, np.pi, 0.01)
+    theta = torch.from_numpy(theta).to(device)
+
+    # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-3)
+    optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=5e-3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     start_epoch = 1
     n_epochs = 30
@@ -466,16 +458,15 @@ if __name__=='__main__':
     if resume_training:
         model, optimizer, start_epoch, test_loss_min = load_ckp(checkpoint_file, model, optimizer)
 
-    # show_test_samples(showFig=True)
-
     from torch.utils.tensorboard import SummaryWriter 
     writer = SummaryWriter(checkpoint_path)
 
+    since = time.time()
     for epoch in range(start_epoch, n_epochs+1):
         print(f"Epoch {epoch}")
 
         train_loss = train(train_dataloader, model, loss_fn, optimizer)
-        test_loss, correct = test(test_dataloader, model, loss_fn)
+        test_loss, correct = test(val_dataloader, model, loss_fn)
 
         writer.add_scalar('Train/Loss', train_loss, epoch)
         writer.add_scalar('Test/Loss', test_loss, epoch)
@@ -483,8 +474,8 @@ if __name__=='__main__':
         writer.add_scalar('Accuracy: relative error 10-50%', 100*correct[1], epoch)
         writer.add_scalar('Accuracy: relative error > 50%', 100*correct[2], epoch)
 
-        figure = show_test_samples()
-        writer.add_figure('Examples of Test Results', figure, epoch)
+        figure = show_result_samples(val_data)
+        writer.add_figure('Examples of Validation Results', figure, epoch)
 
         if test_loss < test_loss_min:
             print('Test loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(test_loss_min, test_loss))
@@ -509,16 +500,15 @@ if __name__=='__main__':
         time_elapsed = time.time() - since
         print('Epoch {:d} complete in {:.0f}m {:.0f}s'.format(epoch, time_elapsed // 60 , time_elapsed % 60))
 
-
     writer.close()
-
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60 , time_elapsed % 60))
 
     # finally, show results of best model
     model, optimizer, start_epoch, test_loss_min = load_ckp(best_model_file, model, optimizer)
-    show_test_samples(showFig=True)
-    show_test_samples(showFig=True)
-    show_test_samples(showFig=True)
+    show_result_samples(val_data, showFig=True)
+    show_result_samples(val_data, showFig=True)
+    show_result_samples(test_data, showFig=True)
+    show_result_samples(test_data, showFig=True)
 
 
