@@ -4,6 +4,9 @@ clc;
 srcDataPath = 'imageCW_v3';     % path to the datalist
 dstDataPath = 'imageCW_v3';     % path to store the reduced datalist
 
+changeDataList(srcDataPath, 'trainDataCW_v3_image.csv', 'trainDataCW_v3_ExcludeExtremes.csv', 80);
+changeDataList(srcDataPath, 'testDataCW_v3_image.csv',  'valDataCW_v3_ExcludeExtremes.csv', 100);
+
 changeDataList(srcDataPath, 'trainDataCW_v3_image.csv', 'trainDataCW_v3_ExcludeExtremes_small.csv', 40);
 changeDataList(srcDataPath, 'testDataCW_v3_image.csv',  'valDataCW_v3_ExcludeExtremes_small.csv', 90);
 
