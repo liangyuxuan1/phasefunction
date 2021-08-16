@@ -30,6 +30,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
 # pip install pandas
 import pandas as pd
+import openpyxl
 from torchvision.io import read_image
 
 # pip install scipy
@@ -351,7 +352,7 @@ def show_result_samples(dataset, showFig=False):
         p_theta = HG_theta(g, theta)
 
         figure.add_subplot(rows, cols, i+1)
-        figtitle = 'ua=%.3f, us=%.2f, g=%.1f \n loss=%.4f' %(gt[0, 0], gt[0, 1], gt[0, 2], loss.item())
+        figtitle = 'ua=%.3f, us=%.2f, g=%.2f \n loss=%.4f' %(gt[0, 0], gt[0, 1], gt[0, 2], loss.item())
         plt.title(figtitle)
         plt.axis("on")
         gmm, p_theta = gmm.to("cpu"), p_theta.to("cpu")
@@ -368,6 +369,73 @@ def show_result_samples(dataset, showFig=False):
         plt.show()
     return figure
 
+def show_Results(dataset, figure_path, save_figure=False):
+    if not os.path.exists(figure_path):
+        os.mkdir(figure_path)
+
+    model.eval()
+
+    results = np.zeros((len(dataset), 7))
+    for i in range(len(dataset)):
+        x, gt = dataset[i]
+        x = x.reshape(1,*x.shape)
+        gt = gt.reshape(1,-1)
+        x, gt = x.to(device), gt.to(device)
+
+        pred = model(x)
+        loss = loss_fn(pred, gt)
+
+        pred = pred.detach()
+
+        gt = gtNorm.restore(gt.to("cpu"))   # restore gt values
+        gt_uas = gt[:, :2]
+        pred_uas = pred[:, -2:]
+        pred_uas = pred_uas.to("cpu")
+        pred_uasg = torch.cat((pred_uas, torch.rand(1,1)), 1) # generate a random g value
+        pred_uasg = gtNorm.restore(pred_uasg)
+        pred_uas  = pred_uasg[:, 0:2]
+        pred_error = (pred_uas - gt_uas).abs()/gt_uas
+        pred_error *= 100.0     # percent
+
+        gmm = GMM(pred[:, 0:num_of_Gaussian*3], theta)
+        g = gt[:, 2]
+        g = g.to(device)
+        p_theta = HG_theta(g, theta)
+        mse = nn.MSELoss()(gmm, p_theta)
+
+        mse = mse.to("cpu")
+        results[i,:] = np.concatenate((gt_uas.numpy(), pred_uas.numpy(), pred_error.numpy(), mse.reshape(1,-1)), 1)
+
+        if save_figure and (i % 10 == 0):
+            fig = plt.figure(figsize=(4, 4))
+
+            figtitle = 'ua=%.3f, us=%.2f, g=%.2f \n MSE=%.4f' %(gt[0, 0], gt[0, 1], gt[0, 2], mse.item())
+            plt.title(figtitle)
+            plt.axis("on")
+            gmm, p_theta = gmm.to("cpu"), p_theta.to("cpu")
+            gmm = gmm.numpy()
+            p_theta = p_theta.numpy()
+            px = theta.to("cpu")
+            px = px.numpy()
+            plt.plot(px, gmm.squeeze())
+            plt.plot(px, p_theta.squeeze())
+            
+            figFileName = 'Fig_%04d.png' % (i/10 + 1)
+            figFile = os.path.join(figure_path, figFileName)
+            plt.savefig(figFile)
+            plt.close(fig)
+
+    return results
+
+def write_results_exel(results, filename):
+    data_df = pd.DataFrame(results)
+    data_df.columns = ['ua', 'us', 'pred_ua', 'pred_us', 'e_ua', 'e_us', 'mse_phase']
+    # need to install openpyxl: pip install openpyxl
+    # and import openpyxl
+    tb_writer = pd.ExcelWriter(filename)
+    data_df.to_excel(tb_writer, 'page_1', float_format='%.4f')
+    tb_writer.save()
+    tb_writer.close()
 
 # ==============================================================================================================
 if __name__=='__main__':
@@ -442,7 +510,7 @@ if __name__=='__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=5e-4, weight_decay=5e-3)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-    start_epoch = 1
+    start_epoch = 31
     n_epochs = 30
     test_loss_min = torch.tensor(np.Inf)
 
@@ -506,9 +574,77 @@ if __name__=='__main__':
 
     # finally, show results of best model
     model, optimizer, start_epoch, test_loss_min = load_ckp(best_model_file, model, optimizer)
-    show_result_samples(val_data, showFig=True)
+    
+    # ----- Validation Results --------------------------------------------------------------------
+    # val_results  = show_Results(val_data,  'validating_results_figures', save_figure=False)
+    fn_val = os.path.join('validating_results_figures', 'val_results.npy')
+    # np.save(fn_val, val_results)
+
+    # xlsx_val = os.path.join('validating_results_figures', 'val_results.xlsx')
+    # write_results_exel(val_results, xlsx_val)
+
+    # ----- Test Results ---------------------------------------------------------------------------
+    # test_results = show_Results(test_data, 'testing_results_figures', save_figure=False)
+    fn_test = os.path.join('testing_results_figures', 'test_results.npy')
+    # np.save(fn_test, test_results)
+
+    # xlsx_test = os.path.join('testing_results_figures', 'test_results.xlsx')
+    # write_results_exel(test_results, xlsx_test)
+
+    val_results  = np.load(fn_val)
+    test_results = np.load(fn_test)
+
+    # ----- Compare Results -------------------------------------------------------------------------
+    # show estimation of ua
+    fig = plt.figure(figsize=(10, 8))
+    fig.add_subplot(2, 1, 1)
+    plt.title("Validation")
+    plt.plot(val_results[:,2], label='pred_ua')
+    plt.plot(val_results[:,0], label='ua')
+    plt.legend()
+    plt.axis("on")
+    fig.add_subplot(2, 1, 2)
+    plt.title("Test")
+    plt.plot(test_results[:,2], label='pred_ua')
+    plt.plot(test_results[:,0], label='ua')
+    plt.legend()
+    plt.axis("on")
+    plt.show()
+
+    # show estimation of us
+    fig = plt.figure(figsize=(10, 8))
+    fig.add_subplot(2, 1, 1)
+    plt.title("Validation")
+    plt.plot(val_results[:,3], label='pred_us')
+    plt.plot(val_results[:,1], label='us')
+    plt.legend()
+    plt.axis("on")
+    fig.add_subplot(2, 1, 2)
+    plt.title("Test")
+    plt.plot(test_results[:,3], label='pred_us')
+    plt.plot(test_results[:,1], label='us')
+    plt.legend()
+    plt.axis("on")
+    plt.show()
+
+    # show mse of phase function
+    fig = plt.figure(figsize=(10, 8))
+    fig.add_subplot(2, 1, 1)
+    plt.title("Validation")
+    plt.plot(val_results[:,0]/10, label='ua')
+    plt.plot(val_results[:,1]/100, label='us')
+    plt.plot(val_results[:,6], label='MSE of Phase Function')
+    plt.legend()
+    plt.axis("on")
+    fig.add_subplot(2, 1, 2)
+    plt.title("Test")
+    plt.plot(test_results[:,0]/10, label='ua')
+    plt.plot(test_results[:,1]/100, label='us')
+    plt.plot(test_results[:,6], label='MSE of Phase Function')
+    plt.legend()
+    plt.axis("on")
+    plt.show()
+
+    # --------------------------------------------------------------------------------------------
     show_result_samples(val_data, showFig=True)
     show_result_samples(test_data, showFig=True)
-    show_result_samples(test_data, showFig=True)
-
-
