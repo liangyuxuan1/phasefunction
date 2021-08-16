@@ -13,6 +13,8 @@ rawDataCW*/
 imageCW*/
 lineCW*/
 training_results*/
+validating_results_figures*/
+testing_results_figures*/
 checkpoints*/
 .vscode/
 .ipynb_checkpoints/
