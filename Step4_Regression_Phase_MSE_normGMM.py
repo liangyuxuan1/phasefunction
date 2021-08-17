@@ -458,8 +458,8 @@ if __name__=='__main__':
     img_path = "H:\imageCW_v3"
     test_img_path = "imageCW_test"
     trainDataListFile = "trainDataCW_v3_ExcludeExtremes_small.csv"
-    valDataListFile   = "valDataCW_v3_ExcludeExtremes_small.csv"
-    testDataListFile  = "testDataCW_ExcludeExtremes.csv"
+    valDataListFile   = "valDataCW_v3_ExcludeExtremes_small_sort.csv"
+    testDataListFile  = "testDataCW_ExcludeExtremes_sort.csv"
     meanPixelVal = 0.0028
     stdPixelVal  = 0.8302
     minParaVal   = [0.0010, 0.01, -0.9]
@@ -576,19 +576,19 @@ if __name__=='__main__':
     model, optimizer, start_epoch, test_loss_min = load_ckp(best_model_file, model, optimizer)
     
     # ----- Validation Results --------------------------------------------------------------------
-    # val_results  = show_Results(val_data,  'validating_results_figures', save_figure=False)
-    fn_val = os.path.join('validating_results_figures', 'val_results.npy')
-    # np.save(fn_val, val_results)
+    val_results  = show_Results(val_data,  'validating_results_figures', save_figure=False)
+    fn_val = os.path.join('validating_results_figures', 'val_results_sort.npy')
+    np.save(fn_val, val_results)
 
-    # xlsx_val = os.path.join('validating_results_figures', 'val_results.xlsx')
+    # xlsx_val = os.path.join('validating_results_figures', 'val_results_gsort.xlsx')
     # write_results_exel(val_results, xlsx_val)
 
     # ----- Test Results ---------------------------------------------------------------------------
-    # test_results = show_Results(test_data, 'testing_results_figures', save_figure=False)
-    fn_test = os.path.join('testing_results_figures', 'test_results.npy')
-    # np.save(fn_test, test_results)
+    test_results = show_Results(test_data, 'testing_results_figures', save_figure=False)
+    fn_test = os.path.join('testing_results_figures', 'test_results_sort.npy')
+    np.save(fn_test, test_results)
 
-    # xlsx_test = os.path.join('testing_results_figures', 'test_results.xlsx')
+    # xlsx_test = os.path.join('testing_results_figures', 'test_results_gsort.xlsx')
     # write_results_exel(test_results, xlsx_test)
 
     val_results  = np.load(fn_val)
@@ -631,15 +631,15 @@ if __name__=='__main__':
     fig = plt.figure(figsize=(10, 8))
     fig.add_subplot(2, 1, 1)
     plt.title("Validation")
-    plt.plot(val_results[:,0]/10, label='ua')
-    plt.plot(val_results[:,1]/100, label='us')
+    # plt.plot(val_results[:,0]/10, label='ua')
+    # plt.plot(val_results[:,1]/100, label='us')
     plt.plot(val_results[:,6], label='MSE of Phase Function')
     plt.legend()
     plt.axis("on")
     fig.add_subplot(2, 1, 2)
     plt.title("Test")
-    plt.plot(test_results[:,0]/10, label='ua')
-    plt.plot(test_results[:,1]/100, label='us')
+    # plt.plot(test_results[:,0]/10, label='ua')
+    # plt.plot(test_results[:,1]/100, label='us')
     plt.plot(test_results[:,6], label='MSE of Phase Function')
     plt.legend()
     plt.axis("on")
