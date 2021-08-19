@@ -56,11 +56,8 @@ For each combination of optical parameters ($\mu_a$, $\mu_s$ and $g$), 80 observ
 
 Some images randomly selected from the training set are shown in Fig.1. 
 
-![](figures/Figure_v3_2_2.png)
+![](figures/Figure_V3_Samples_1_Crop.png)
 
-![](figures/Figure_v3_3_2.png)
-
-![](figures/Figure_v3_4_2.png)
 
 <div align=center>
 Fig 1. Example of simulated images
