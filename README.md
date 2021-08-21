@@ -85,7 +85,7 @@ As my first try, a convolutional neural network (CNN) is designed to regress the
 <div align=center>
 <img src="figures/NN1.jpg" width="70%" />
 
-Fig. 3. Diagram of neural network for optical parameter regression
+Fig. 3. Diagram of Model-1, a neural network for optical parameter regression
 </div>
 
 #### Implement Details: [Step3_Regression_Parameters_v2.py](Step3_Regression_Parameters_v2.py)
@@ -131,4 +131,14 @@ The results demonstrate that, first of all, the training procedure converges (Fi
 
 ### Step 4: Estimation the Phase Function together with the optical parameters (Model-2)
 
-Since the objective of this study is to estimate the phase function directly from the observations, Model-1 is modified to estimate the 
+Since the objective of this study is to estimate the phase function directly from the observations, Model-1 is modified to estimate the phase function together with $u_a$ and $u_s$. The diagram of the model (Model-2) is shown in Fig. 8. The Gaussian Mixture Model (GMM) is used to fit the phase function. The FC layer estimates the parameters of the Gaussian kernels including the weight $w_i$, the mean $m_i$, and the standard deviation $\sigma_i$, $i=1,\dots,N$, where $N$ is the number of Gaussian kernels, which is set to 10 in the following experiments. Therefore the outputs of the FC layer consists of $N\times 3$ neurons for Gaussian kernel estimation and 2 neurons for $u_a$ and $u_s$ estimation. 
+
+<div align=center>
+<img src="figures/NN2.png" width="70%" />
+
+Fig. 8. Diagram of Model-2, estimating the phase function and optical parameters simultaneously
+</div>
+
+#### Loss Function
+
+The loss function of Model-2 is defined as $loss = loss_{phase} + loss_{uas}$, where $loss_{phase}$ is the mean squared error (MSE) between the GMM fitted phase function and H-G function and $loss_{uas}$ is the MSE of $u_a$ and $u_s$. The GMM estimation is rescaled to guarantee it integrates to 1 over $[0, \pi]$. 
