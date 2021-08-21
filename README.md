@@ -96,7 +96,7 @@ Fig. 3. Diagram of Model-1, a neural network for optical parameter regression
     Initial learning rate: 5e-4, decreased by a factor of 0.1 every 10 epochs
     Weight decay: 5e-3
     Batch size: 60
-    Training epoches: 20
+    Training epochs: 20
 
 The images are normalized based on the mean and standard deviation of images in the training dataset before feeding into the neural network. The mean and standard deviation of the training dataset are calculated by [Step3_CalcMeanSTD.py](Step3_CalcMeanSTD.py). 
 
