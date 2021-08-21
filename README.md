@@ -41,12 +41,12 @@ Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathemat
 
 ### Step 1: Data Generation
 
-A single layer homogenous tissue phantom is adopted to conduct the study. The diagram of the phantom is shown in Fig.1. The size of the phantom is $10 mm \times 10 mm \times 2 mm$ $(x, y, z)$. 
+A single layer homogenous tissue phantom is adopted to conduct the study. The diagram of the phantom is shown in Fig. 1. The size of the phantom is $10 mm \times 10 mm \times 2 mm$ $(x, y, z)$. 
 
 <div align=center>
 <img src="figures/phantom.png" width="50%" />
 
-Fig 1. Diagram of the phantom
+Fig. 1. Diagram of the phantom
 </div>
 
 
@@ -69,7 +69,7 @@ Since MOSE saves all side-view observations of the slab, another MATLAB program 
 
 [comment]: <> (For some combination of optical parameters, very few photons reach the top-view. In the following experiments, images with less than 1% of the total number of pixels having pixel values greater than 0 are excluded because they would hinder the training of the neural network.)
 
-Some images randomly selected from the training set are shown in Fig.2. 
+Some images randomly selected from the training set are shown in Fig. 2. 
 
 <div align=center>
 <img src="figures/Figure_V3_Samples_1_Crop.png" width="80%" />
@@ -80,12 +80,12 @@ Fig. 2. Example of simulated images
 
 ### Step 3: Estimation of Optical Parameters (Model-1)
 
-As my first try, a convolutional neural network (CNN) is designed to regress the optical parameters $u_a$, $u_s$, and $g$. The diagram of the network is shown in Fig.3, which consists of 6 convolution layers and one fully connected (FC) layer. Each convolution layer is composed by stacking a $3\times 3$ convolution, a batch normalization layer, and a ReLU layer. The output of the last convolutional layer is flattened to a vector, which is used as the input of the FC layer. The output layer of FC adopts the sigmoid activation function. Therefore the ground truth values of $u_a, u_s$ and $g$ are normalized to [0.01, 1] when the network is trained. The lower limit of 0.01 is chosen to facilitate the calculation of the relative error (RE). 
+As my first try, a convolutional neural network (CNN) is designed to regress the optical parameters $u_a$, $u_s$, and $g$. The diagram of the network is shown in Fig. 3, which consists of 6 convolution layers and one fully connected (FC) layer. Each convolution layer is composed by stacking a $3\times 3$ convolution, a batch normalization layer, and a ReLU layer. The output of the last convolutional layer is flattened to a vector, which is used as the input of the FC layer. The output layer of FC adopts the sigmoid activation function. Therefore the ground truth values of $u_a, u_s$ and $g$ are normalized to [0.01, 1] when the network is trained. The lower limit of 0.01 is chosen to facilitate the calculation of the relative error (RE). 
 
 <div align=center>
 <img src="figures/NN1.jpg" width="70%" />
 
-Fig 3. Diagram of neural network for optical parameter regression
+Fig. 3. Diagram of neural network for optical parameter regression
 </div>
 
 #### Implement Details: [Step3_Regression_Parameters_v2.py](Step3_Regression_Parameters_v2.py)
@@ -105,29 +105,29 @@ The images are normalized based on the mean and standard deviation of images in 
 <div align=center>
 <img src="figures/Val_Loss_NN1.png" width="40%" />
 
-Fig 4. Chart of train loss
+Fig. 4. Chart of train loss
 </div>
 
 
 <div align=center>
 <img src="figures/Train_Loss_NN1.png" width="40%" />
 
-Fig 5. Chart of validation loss
+Fig. 5. Chart of validation loss
 </div>
 
 <div align=center>
 <img src="figures/Accuracy_relative_error_10_NN1.png" width="40%" />
 
-Fig 6. Rate of samples with relative error less than 10%
+Fig. 6. Rate of samples with relative error less than 10%
 </div>
 
 <div align=center>
 <img src="figures/Accuracy_relative_error_50_NN1.png" width="40%" />
 
-Fig 7. Rate of samples with relative error greater than 50%
+Fig. 7. Rate of samples with relative error greater than 50%
 </div>
 
-The results demonstrate that, first of all, the training procedure converges (Fig.4, 5), and the network learns to predict the optical parameters. The prediction accuracy improves as the learning process proceeds, as shown by the increasing rate of small relative error samples (Fig.6) and decreasing rate of large relative error samples (Fig.7).  
+The results demonstrate that, first of all, the training procedure converges (Fig. 4, Fig. 5), and the network learns to predict the optical parameters. The prediction accuracy improves as the learning process proceeds, as shown by the increasing rate of small relative error samples (Fig. 6) and decreasing rate of large relative error samples (Fig. 7).  
 
 ### Step 4: Estimation the Phase Function together with the optical parameters (Model-2)
 
