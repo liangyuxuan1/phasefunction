@@ -4,7 +4,7 @@ Summer-intern project supervised by Prof. [Ge Wang](https://biotech.rpi.edu/cent
 
 Started from May, 2021.
 
-**Note**: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equations and figures (PNG) correctly.
+**Note**: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equations correctly.
 
 ## Objective
 
