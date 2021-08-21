@@ -4,6 +4,8 @@ Summer-intern project supervised by Prof. [Ge Wang](https://biotech.rpi.edu/cent
 
 Started from May, 2021.
 
+**Note**: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equations and figures (PNG) correctly.
+
 ## Objective
 
 Building a phase function model for light propagation in medium using data-driven machine learning methods. 
@@ -36,8 +38,6 @@ References:
     - Anaconda3 2021.05
     - Python 3.8
     - Pytorch 1.8.1
-
-Note: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equations correctly.
 
 ### Step 1: Data Generation
 
