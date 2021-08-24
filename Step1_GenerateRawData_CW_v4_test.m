@@ -17,17 +17,18 @@ phantomFile = 'newProject_CW_500.mse';
 % parameter range, refer to: Brett H. Hokr1 and Joel N. Bixler2, Machine
 % learning estimation of tissue optical properties, Scientific Reports,
 % 11:6561, 2021
-
+% ua = [0.02, 0.08, 0.3, 0.8, 3, 6, 7.5, 9];      % absorption coefficient, [0.01, 10] mm^-1
+% us = [0.03, 0.08, 0.3, 0.8, 3, 6, 20, 60, 80];        % scattering coefficient, [0.1, 100] mm^-1
 % T1 fat
 ua = [0.00504];          % absorption coefficient, [0.01, 10] mm^-1
 us = [20.45447];         % scattering coefficient, [0.1, 100] mm^-1
 
-n  = 1.37;               % refractive index, no need to vary for single layer slab
-g  = [0.55:0.1:0.95];    % anistropic scattering coefficient of HG function
-trainNum = 200;           % training number of runs (images) for each set of parameters
-valNum  = 30;            % validation number of runs (images) for each set of parameters
+n  = 1.37;                  % refractive index, no need to vary for single layer slab
+g  = [0.6:0.1:0.9];         % anistropic scattering coefficient of HG function
+trainNum = 30;              % training number of runs (images) for each set of parameters
+valNum  = 0;                % validation number of runs (images) for each set of parameters
 
-dataPath = 'rawDataCW_v4_fat';   % path to store the raw simulation results
+dataPath = 'rawDataCW_v4_fat_test';   % path to store the raw simulation results
 if ~exist(dataPath,'dir')
     mkdir(dataPath);
 end
@@ -73,5 +74,5 @@ for ia = 1:length(ua)
     end % of is
 end % of ia
 
-writetable(trainTableCW, [dataPath, filesep, 'trainDataCW_v4_fat.csv']);
-writetable(valTableCW,   [dataPath, filesep, 'valDataCW_v4_fat.csv']);
+writetable(trainTableCW, [dataPath, filesep, 'testDataCW_v4_fat.csv']);
+% writetable(valTableCW,   [dataPath, filesep, 'valDataCW_v4.csv']);
