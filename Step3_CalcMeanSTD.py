@@ -46,9 +46,9 @@ class CustomImageDataset(Dataset):
         return image, gt
 
 
-img_path="imageCW_v3"
+img_path="imageCW_v4"
 training_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v3_ExcludeExtremes.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v4.csv"),
     img_dir = img_path
 )
 
@@ -56,12 +56,12 @@ training_data = CustomImageDataset(
 
 # If the images can be load into memory completely.
 
-# train_dataloader = DataLoader(training_data, batch_size=len(training_data))
-# img, gt = next(iter(train_dataloader))
-# mean = img.mean()
-# std  = img.std()
-# print(mean)
-# print(std)
+train_dataloader = DataLoader(training_data, batch_size=len(training_data))
+img, gt = next(iter(train_dataloader))
+mean = img.mean()
+std  = img.std()
+print(mean)
+print(std)
 
 # minGt = gt.min(0)
 # maxGt  = gt.max(0)
@@ -80,15 +80,14 @@ training_data = CustomImageDataset(
 
 # imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
 
-# trainDataCW_v3_ExcludeExtremes, 500x500, training number = 80, mean = 0.0028, std = 0.8302
+# imageCW_v4_fat, 500x500, training number = 200, mean = 0.0068, std = 0.3823
+
+# imageCW_v4, 500x500, training number = 200, mean = 0.0045, std = 0.3633
 
 # ===============================================================
 # If there are too many images to load into memory in one batch
 # train_dataloader = DataLoader(training_data, batch_size=6048) # for v3
-# train_dataloader = DataLoader(training_data, batch_size=7560)   # for v4
-
-train_dataloader = DataLoader(training_data, batch_size=5168)   # for trainDataCW_v3_ExcludeExtremes
-
+train_dataloader = DataLoader(training_data, batch_size=7560)   # for v4
 
 total_sum = 0
 for batch in train_dataloader: 
