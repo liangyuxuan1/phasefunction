@@ -1,8 +1,11 @@
 # Estimation of Phase Function based on Machine Learning
 
-Summer-intern project supervised by Prof. [Ge Wang](https://biotech.rpi.edu/centers/bic/people/faculty/ge-wang), Rensselaer Polytechnic Institute (RPI).
+Summer intern project supervised by Prof. [Ge Wang](https://biotech.rpi.edu/centers/bic/people/faculty/ge-wang), Rensselaer Polytechnic Institute (RPI).
 
 Started from May, 2021.
+
+This repo hosts my code for the summer intern project aimed at estimating the phase function of light propagation in a medium directly from the transmittance images. The feasibility of data-driven deep learning approach is explored. I started coding in MATLAB to generate the simulation data and a first model, and then moved to Python and Pytroch. All versions of the code, whether perfect or not, are saved here to record my learning trajectory. I will clean up the code and put them into a new repo when the final report is done.
+ 
 
 **Note**: Install _MathJax Plugin for Github_ from Chrome Store to show the mathematical equations correctly.
 
@@ -77,15 +80,23 @@ Some images randomly selected from the training set are shown in Fig. 2.
 Fig. 2. Example of simulated images
 </div>
 
+<div align=center>
+<img src="figures/ExtremeImages.png" width="80%" />
+
+Fig. 3. Example of extreme images
+</div>
+
+Some extreme parameter values, such extreme small ua, g=1 and g=-1, produce images with very few non-zero pixels (Fig. 3). These images do provide information about the material properties, but they do not provide enough information for CNN to learn.  These images are excluded from the dataset.
+
 
 ### Step 3: Estimation of Optical Parameters (Model-1)
 
-As my first try, a convolutional neural network (CNN) is designed to regress the optical parameters $u_a$, $u_s$, and $g$. The diagram of the network is shown in Fig. 3, which consists of 6 convolution layers and one fully connected (FC) layer. Each convolution layer is composed by stacking a $3\times 3$ convolution, a batch normalization layer, and a ReLU layer. The output of the last convolutional layer is flattened to a vector, which is used as the input of the FC layer. The output layer of FC adopts the sigmoid activation function. Therefore the ground truth values of $u_a, u_s$ and $g$ are normalized to [0.01, 1] when the network is trained. The lower limit of 0.01 is chosen to facilitate the calculation of the relative error (RE). 
+As my first try, a convolutional neural network (CNN) is designed to regress the optical parameters $u_a$, $u_s$, and $g$. The diagram of the network is shown in Fig. 4, which consists of 6 convolution layers and one fully connected (FC) layer. Each convolution layer is composed by stacking a $3\times 3$ convolution, a batch normalization layer, and a ReLU layer. The output of the last convolutional layer is flattened to a vector, which is used as the input of the FC layer. The output layer of FC adopts the sigmoid activation function. Therefore the ground truth values of $u_a, u_s$ and $g$ are normalized to [0.01, 1] when the network is trained. The lower limit of 0.01 is chosen to facilitate the calculation of the relative error (RE). 
 
 <div align=center>
 <img src="figures/NN1.jpg" width="70%" />
 
-Fig. 3. Diagram of Model-1, a neural network for optical parameter regression
+Fig. 4. Diagram of Model-1, a neural network for optical parameter regression
 </div>
 
 #### Implement Details: [Step3_Regression_Parameters_v2.py](Step3_Regression_Parameters_v2.py)
@@ -105,40 +116,89 @@ The images are normalized based on the mean and standard deviation of images in 
 <div align=center>
 <img src="figures/Val_Loss_NN1.png" width="40%" />
 
-Fig. 4. Chart of train loss
+Fig. 5. Chart of train loss
 </div>
 
 
 <div align=center>
 <img src="figures/Train_Loss_NN1.png" width="40%" />
 
-Fig. 5. Chart of validation loss
+Fig. 6. Chart of validation loss
 </div>
 
 <div align=center>
 <img src="figures/Accuracy_relative_error_10_NN1.png" width="40%" />
 
-Fig. 6. Rate of samples with relative error less than 10%
+Fig. 7. Rate of samples with relative error less than 10%
 </div>
 
 <div align=center>
 <img src="figures/Accuracy_relative_error_50_NN1.png" width="40%" />
 
-Fig. 7. Rate of samples with relative error greater than 50%
+Fig. 8. Rate of samples with relative error greater than 50%
 </div>
 
-The results demonstrate that, first of all, the training procedure converges (Fig. 4, Fig. 5), and the network learns to predict the optical parameters. The prediction accuracy improves as the learning process proceeds, as shown by the increasing rate of small relative error samples (Fig. 6) and decreasing rate of large relative error samples (Fig. 7).  
+The results demonstrate that, first of all, the training procedure converges (Fig. 5, Fig. 6), and the network learns to predict the optical parameters. The prediction accuracy improves as the learning process proceeds, as shown by the increasing rate of small relative error samples (Fig. 7) and decreasing rate of large relative error samples (Fig. 8).  
 
 ### Step 4: Estimation the Phase Function together with the optical parameters (Model-2)
 
-Since the objective of this study is to estimate the phase function directly from the observations, Model-1 is modified to estimate the phase function together with $u_a$ and $u_s$. The diagram of the model (Model-2) is shown in Fig. 8. The Gaussian Mixture Model (GMM) is used to fit the phase function. The FC layer estimates the parameters of the Gaussian kernels including the weight $w_i$, the mean $m_i$, and the standard deviation $\sigma_i$, $i=1,\dots,N$, where $N$ is the number of Gaussian kernels, which is set to 10 in the following experiments. Therefore the outputs of the FC layer consists of $N\times 3$ neurons for Gaussian kernel estimation and 2 neurons for $u_a$ and $u_s$ estimation. 
+Since the objective of this study is to estimate the phase function directly from the observations, Model-1 is modified to estimate the phase function together with $u_a$ and $u_s$. The diagram of the model (Model-2) is shown in Fig. 9. The Gaussian Mixture Model (GMM) is used to fit the phase function. The FC layer estimates the parameters of the Gaussian kernels including the weight $w_i$, the mean $m_i$, and the standard deviation $\sigma_i$, $i=1,\dots,N$, where $N$ is the number of Gaussian kernels, which is set to 10 in the following experiments. Therefore the outputs of the FC layer consists of $N\times 3$ neurons for Gaussian kernel estimation and 2 neurons for $u_a$ and $u_s$ estimation. 
 
 <div align=center>
 <img src="figures/NN2.png" width="70%" />
 
-Fig. 8. Diagram of Model-2, estimating the phase function and optical parameters simultaneously
+Fig. 9. Diagram of Model-2, estimating the phase function and optical parameters simultaneously
 </div>
 
 #### Loss Function
 
 The loss function of Model-2 is defined as $loss = loss_{phase} + loss_{uas}$, where $loss_{phase}$ is the mean squared error (MSE) between the GMM fitted phase function and H-G function and $loss_{uas}$ is the MSE of $u_a$ and $u_s$. The GMM estimation is rescaled to guarantee it integrates to 1 over $[0, \pi]$. 
+
+#### Results of Model-2
+
+<div align=center>
+<img src="figures/NN2_loss.png" width="80%" />
+
+Fig. 10. Chart of train (left) and validation (right) loss of Model-2
+</div>
+
+The training process is convergent, but the large fluctuations in the validation error suggest that the network shows signs of *overfitting*?
+
+
+<div align=center>
+<img src="figures/NN2_ua_error.png" width="70%" />
+
+Fig. 11. Estimation error of $u_a$ of Model-2
+</div>
+
+<div align=center>
+<img src="figures/NN2_us_error.png" width="70%" />
+
+Fig. 12. Estimation error of $u_s$ of Model-2
+</div>
+
+The estimation errors of $u_a$ and $u_s$ show a similar trend: large for small values and small for large. But, **the relative errors are too large to accept!** It can also be seen that the test error is smaller than the validation error, which may indicate that the distribution of the test and validation data sets are different. 
+
+<div align=center>
+<img src="figures/NN2_phase_error.png" width="70%" />
+
+Fig. 13. Estimation error of phase function of Model-2
+</div>
+
+When the absolute value of $g$ is large, a large estimation error of the phase function occurs. Is there a relationship between the phase error and the number of non-zero pixels in an image? I sort the images in scending order of the non-zero pixel number. 
+
+<div align=center>
+<img src="figures/NN2_val_error.png" width="70%" />
+
+Fig. 14. Validation errors of Model-2
+</div>
+
+<div align=center>
+<img src="figures/NN2_test_error.png" width="70%" />
+
+Fig. 15. Test errors of Model-2
+</div>
+
+The phase error tends to decrease as the number of non-zero pixels increases, indicating that more information in the image contributes to learning. However, the valleys (small errors) in the phase error plot suggest that the number of non-zero pixels may not be the only factor in accurate learning. The estimation error of $u_s$ has a similar trend to that of the phase function, but the estimation error of $u_a$ increases with the number of non-zero pixels. 
+
+The above results demonstrate that estimation of the phase function together simultaneously with the optical parameters $u_a$ and $u_s$ is a difficult problem. The complexity comes from the fact that the three factors are integrated when generating the images and training the neural network, as the loss of phase is added to the loss of $u_a$ and $u_s$. Another possibility is that the parameter range varies widely and  in an enumerated manner, which may generate unrealistic materials.
