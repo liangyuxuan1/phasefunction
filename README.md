@@ -80,13 +80,13 @@ Some images randomly selected from the training set are shown in Fig. 2.
 Fig. 2. Example of simulated images
 </div>
 
+Some extreme parameter values, such extreme small ua, g=1 and g=-1, produce images with very few non-zero pixels (Fig. 3). These images do provide information about the material properties, but they do not provide enough information for CNN to learn.  These images are excluded from the dataset.
+
 <div align=center>
 <img src="figures/ExtremeImages.png" width="80%" />
 
 Fig. 3. Example of extreme images
 </div>
-
-Some extreme parameter values, such extreme small ua, g=1 and g=-1, produce images with very few non-zero pixels (Fig. 3). These images do provide information about the material properties, but they do not provide enough information for CNN to learn.  These images are excluded from the dataset.
 
 
 ### Step 3: Estimation of Optical Parameters (Model-1)
