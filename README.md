@@ -157,7 +157,7 @@ The loss function of Model-2 is defined as $loss = loss_{phase} + loss_{uas}$, w
 #### Results of Model-2
 
 <div align=center>
-<img src="figures/NN2_loss.png" width="80%" />
+<img src="figures/NN2_Loss.png" width="80%" />
 
 Fig. 10. Chart of train (left) and validation (right) loss of Model-2
 </div>
