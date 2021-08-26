@@ -19,37 +19,41 @@ phantomFile = 'newProject_CW_500.mse';
 % 11:6561, 2021
 % ua = [0.02, 0.08, 0.3, 0.8, 3, 6, 7.5, 9];      % absorption coefficient, [0.01, 10] mm^-1
 % us = [0.03, 0.08, 0.3, 0.8, 3, 6, 20, 60, 80];        % scattering coefficient, [0.1, 100] mm^-1
-% T1 fat
-ua = [0.00504];          % absorption coefficient, [0.01, 10] mm^-1
-us = [20.45447];         % scattering coefficient, [0.1, 100] mm^-1
+
+% parameter at 650 nm
+% T1 fat, heart, gut, liver, lung, kidney
+pua = [0.00504, 0.07859, 0.01504, 0.47078, 0.26296, 0.08811];          % absorption coefficient, [0.01, 10] mm^-1
+pus = [20.45447, 6.7104, 18.49734, 6.9999, 36.81805, 16.84647];         % scattering coefficient, [0.1, 100] mm^-1
+% g = [0.94, 0.85, 0.92, 0.9, 0.94, 0.86]
 
 n  = 1.37;                  % refractive index, no need to vary for single layer slab
 g  = [0.6:0.1:0.9];         % anistropic scattering coefficient of HG function
 trainNum = 30;              % training number of runs (images) for each set of parameters
 valNum  = 0;                % validation number of runs (images) for each set of parameters
 
-dataPath = 'rawDataCW_v4_fat_test';   % path to store the raw simulation results
+dataPath = 'rawDataCW_v4_test';   % path to store the raw simulation results
 if ~exist(dataPath,'dir')
     mkdir(dataPath);
 end
 
-totalTrainNum = length(ua)*length(us)*length(g)*trainNum;
-totalValNum  = length(ua)*length(us)*length(g)*valNum;
+totalTrainNum = length(pua)*length(g)*trainNum;
+totalValNum  = length(pua)*length(g)*valNum;
 varNames = {'image', 'ua', 'us', 'g', 'photonPosNum'};
 varTypes = {'string', 'double', 'double', 'double', 'int32'};
 trainTableCW = table('Size', [totalTrainNum,5], 'VariableTypes',varTypes,'VariableNames',varNames);
 valTableCW   = table('Size', [totalValNum,5],  'VariableTypes',varTypes,'VariableNames',varNames);
-for ia = 1:length(ua)
-    for is = 1:length(us)
+for p = 1:6
+    ua = pua(p);
+    us = pus(p);
         for ig = 1:length(g)
-            samplePath = sprintf("a%02d_s%02d_g%03d",ia, is, ig);
+            samplePath = sprintf("p%02d_g%03d",p, ig);
             if ~exist(fullfile(dataPath, samplePath), 'dir')
                 mkdir(fullfile(dataPath, samplePath));
             end
             for i = 1:trainNum+valNum
-                dataFileName = sprintf("a%03d_s%03d_g%03d_%04d",ia, is, ig, i);  % data file name
+                dataFileName = sprintf("p%02d_g%03d_%04d", p, ig, i);  % data file name
                 fullDataFileName = fullfile(dataPath, samplePath, dataFileName);
-                parameters = ['MOSE\moseVCTest.exe', phantomFile, fullDataFileName, num2str(ua(ia)), num2str(us(is)), num2str(g(ig)), num2str(n)];
+                parameters = ['MOSE\moseVCTest.exe', phantomFile, fullDataFileName, num2str(ua), num2str(us), num2str(g(ig)), num2str(n)];
                 cmdLine = strjoin(parameters, ' ');
                 
                 % check the results
@@ -61,18 +65,16 @@ for ia = 1:length(ua)
                 
                 dataFileName = strcat(dataFileName, '.T.CW');
                 if i > trainNum
-                    counter = (ia-1)*length(us)*length(g)*valNum + (is-1)*length(g)*valNum + (ig-1)*valNum + i-trainNum;
-                    valTableCW(counter,:)  = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), photonNum};
+                    counter = (p-1)*length(g)*valNum + (ig-1)*valNum + i-trainNum;
+                    valTableCW(counter,:)  = {fullfile(samplePath, dataFileName), ua, us, g(ig), photonNum};
                 else
-                    counter = (ia-1)*length(us)*length(g)*trainNum + (is-1)*length(g)*trainNum + (ig-1)*trainNum + i;
-                    trainTableCW(counter,:) = {fullfile(samplePath, dataFileName), ua(ia), us(is), g(ig), photonNum};
+                    counter = (p-1)*length(g)*trainNum + (ig-1)*trainNum + i;
+                    trainTableCW(counter,:) = {fullfile(samplePath, dataFileName), ua, us, g(ig), photonNum};
                 end
                 % figure; imshow(binaryImg);
-
-            end % of ig
-        end % of in
-    end % of is
+            end % of in
+        end % of ig
 end % of ia
 
-writetable(trainTableCW, [dataPath, filesep, 'testDataCW_v4_fat.csv']);
+writetable(trainTableCW, [dataPath, filesep, 'testDataCW_v4.csv']);
 % writetable(valTableCW,   [dataPath, filesep, 'valDataCW_v4.csv']);
