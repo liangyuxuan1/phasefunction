@@ -32,7 +32,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 # Creating a Custom Dataset for your files
 # A custom Dataset class must implement three functions: __init__, __len__, and __getitem__. 
 
-# pip install torchsummary
+# pip install torch-summary
 from torchsummary import summary
 # pip install openpyxl
 import openpyxl
@@ -497,6 +497,20 @@ def write_results_exel(results, filename):
     tb_writer.save()
     tb_writer.close()
 
+def write_results_txt(results, filename):
+    fid = open(filename, 'w')
+    for i in range(np.size(results, 0)):
+        for j in range(np.size(results, 1)):
+            fid.write('%04f\t' % results[i,j])
+        fid.write('%04f\n' % np.mean(results[i,:]))
+    fid.write('\n%04f\n\n' % np.mean(results))
+
+    model_struct = summary(model, (1, 500, 500), verbose=0)
+    model_struct_str = str(model_struct)
+    fid.write(model_struct_str)
+
+    fid.close()
+
 # ==============================================================================================================
 if __name__=='__main__':
 
@@ -560,7 +574,7 @@ if __name__=='__main__':
     test_dataloader  = DataLoader(test_data, batch_size=batch_size, pin_memory=True)
 
     # Define model
-    num_of_Gaussian = 8
+    num_of_Gaussian = 5
     # model = NeuralNetwork().to(device)
     # print(model)
     # from resnet_models import resnet14
@@ -680,6 +694,9 @@ if __name__=='__main__':
         for j in range(gTestNum):
             test_pi_gi = test_pi[j*iNum:(j+1)*iNum, :]
             test_mean[i,j] = np.mean(test_pi_gi[:,7])
+
+    write_results_txt(val_mean, os.path.join(checkpoint_path, 'mean_val_results.txt'))
+    write_results_txt(test_mean, os.path.join(checkpoint_path, 'mean_test_results.txt'))
 
     name = ['fat', 'heart', 'gut', 'liver', 'lung', 'kidney']
     x_val = [0.55, 0.65, 0.75, 0.85, 0.95]
