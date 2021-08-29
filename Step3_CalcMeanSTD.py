@@ -46,9 +46,9 @@ class CustomImageDataset(Dataset):
         return image, gt
 
 
-img_path="imageCW_v4"
+img_path="imageCW_v3"
 training_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v4.csv"),
+    annotations_file = os.path.join(img_path, "trainDataCW_v3_ExcludeExtremes_PositiveG.csv"),
     img_dir = img_path
 )
 
@@ -77,6 +77,8 @@ print(std)
 # gt = [ua, us, g], min = [0.0010, 0.0150, 0.1550], max = [0.2750, 100.92, 0.9550]
 
 # imageCW_v3, 500x500, training number = 80, mean = 0.0026, std = 0.9595
+# trainDataCW_v3_ExcludeExtremes, 500x500, training number = 80, mean = 0.0028, std = 0.8302
+# trainDataCW_v3_ExcludeExtremes_PositiveG, 500x500, training number = 80, mean = 0.0022, std = 0.4228
 
 # imageCW_v4, 500x500, training number = 50, mean = 0.0026, std = 0.9595
 
