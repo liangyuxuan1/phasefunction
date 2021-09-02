@@ -1,7 +1,5 @@
 import torch
 from torch.utils.data import Dataset
-import sys
-sys.path.append('./src')
 from preprocessing import DataPreprocessor
 
 class CustomImageDataset_Pickle(Dataset):
