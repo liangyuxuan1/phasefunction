@@ -12,6 +12,7 @@ from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision import transforms
 from torchvision.transforms import ToTensor, Lambda, Compose
+from torch.utils.tensorboard import SummaryWriter 
 
 # pip install matplotlib
 import matplotlib
@@ -25,60 +26,20 @@ import shutil
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
-# PyTorch offers domain-specific libraries such as TorchText, TorchVision, and TorchAudio, all of which include datasets. 
-# For this tutorial, we will be using a TorchVision dataset.
-# The torchvision.datasets module contains Dataset objects for many real-world vision data like CIFAR, COCO (full list here). 
-
-# Creating a Custom Dataset for your files
-# A custom Dataset class must implement three functions: __init__, __len__, and __getitem__. 
+import sys
+sys.path.append('./src')
+from preprocessing import DataPreprocessor
+from CustomImageDataset_Pickle import CustomImageDataset_Pickle
+from CustomImageDataset import CustomImageDataset
+import checkpoints
+from logger import double_logger
+import trainer
 
 # pip install torch-summary
 from torchsummary import summary
-# pip install openpyxl
-import openpyxl
 
 # pip install pandas
 import pandas as pd
-from torchvision.io import read_image
-
-# pip install scipy
-import scipy.io as scipyIO
-
-#data = io.loadmat(fullFileName, variable_names='rawData', mat_dtype=True)
-
-class CustomImageDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
-        self.img_labels = pd.read_csv(annotations_file)
-        self.img_dir = img_dir
-        self.transform = transform
-        self.target_transform = target_transform
-
-    def __len__(self):
-        return len(self.img_labels)
-
-    def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0]) # 0: filename
-        # image = read_image(img_path)
-        image = scipyIO.loadmat(img_path).get('rawData')
-        image = image.astype(np.float64)
-        h, w = image.shape
-        image = torch.from_numpy(image).reshape(1, h, w)
-        image = image.float()
-
-        ua = self.img_labels.iloc[idx, 1]    # 1: ua value
-        us = self.img_labels.iloc[idx, 2]    # 2: us value
-        g = self.img_labels.iloc[idx, 3]     # 3: g value
-
-        gt = torch.tensor([ua, us, g])
-        # gt = torch.tensor(gt).reshape(-1)
-        gt = gt.float()
-
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            gt = self.target_transform(gt)
-
-        return image, gt
 
 class gtNormalize(object):
     def __init__(self, minV, maxV):
@@ -97,98 +58,6 @@ class gtNormalize(object):
         gt = (gt - 0.01)/k + self.minV
         return gt
 
-# figure = plt.figure(figsize=(8, 8))
-# cols, rows = 3, 3
-# for i in range(1, cols * rows + 1):
-#     sample_idx = torch.randint(len(training_data), size=(1,)).item()
-#     img, label = training_data[sample_idx]
-#     figure.add_subplot(rows, cols, i)
-#     figtitle = 'g=%.2f'%label
-#     plt.title(figtitle)
-#     plt.axis("off")
-#     plt.imshow(np.log(np.log(img.squeeze()+1)+1), cmap="hot")
-# plt.show()
-
-# Creating Models
-# To define a neural network in PyTorch, we create a class that inherits from nn.Module. 
-# We define the layers of the network in the __init__ function and specify how data will pass through the network in the forward function. 
-# To accelerate operations in the neural network, we move it to the GPU if available.
-class NeuralNetwork(nn.Module):
-    def __init__(self):
-        super(NeuralNetwork, self).__init__()
-        # self.flatten = nn.Flatten()
-        self.backbone = nn.Sequential(
-            nn.Conv2d(1, 16, 3),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-
-            nn.Conv2d(16, 16, 3),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-
-            nn.MaxPool2d(2, stride=2),
-
-            nn.Conv2d(16, 32, 3),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-
-            nn.Conv2d(32, 32, 3),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-
-            nn.MaxPool2d(2, stride=2),
-
-            nn.Conv2d(32, 64, 3),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-
-            nn.Conv2d(64, 64, 3),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-
-            nn.MaxPool2d(2, stride=2),
-
-            nn.Conv2d(64, 128, 3),
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-
-            nn.Conv2d(128, 128, 3),
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-
-            nn.MaxPool2d(2, stride=2)
-        )
-
-        self.convPhase = nn.Sequential(
-            nn.Conv2d(128, 256, 3),
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
-
-            nn.Conv2d(256, 256, 3),
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
-
-            nn.MaxPool2d(2, stride=2),
-
-            nn.Conv2d(256, 256, 3),
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool2d(output_size=(1,1))
-        )
-
-        self.fc = nn.Sequential(
-            nn.Linear(256, 3*num_of_Gaussian),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        x = self.backbone(x)
-        x = self.convPhase(x)
-        x = x.view(x.size(0), -1)
-        pred = self.fc(x)
-
-        return pred
-
 # Optimizing the Model Parameters
 # To train a model, we need a loss function and an optimizer.
 def kl_divergence(dis_a, dis_b):
@@ -205,7 +74,7 @@ def kl_divergence(dis_a, dis_b):
 def HG_theta(g, theta):
     # calculate 2*pi*p(cos(theta))
     bSize = g.size()[0] 
-    p = torch.zeros(bSize, theta.size()[0]).to(device)
+    p = torch.zeros(bSize, theta.size()[0]).cuda()
     for i in range(bSize):
         p[i,:] = 0.5*(1-g[i]*g[i])/((1+g[i]*g[i]-2*g[i]*torch.cos(theta))**(3.0/2.0) + 1e-6)
         p[i,:] *= torch.sin(theta)
@@ -227,7 +96,7 @@ def GMM(nnOut, theta):
     d = nnOut[:, num_of_Gaussian*2:num_of_Gaussian*3]       # std [0, 1]
 
     bSize = nnOut.size()[0]
-    gmm = torch.zeros(bSize, theta.size()[0]).to(device)
+    gmm = torch.zeros(bSize, theta.size()[0]).cuda()
     for i in range(bSize):
         for j in range(num_of_Gaussian):
             gmm[i,:] += (w[i, j]/w_sum[i]) * normfun(theta, m[i, j], d[i, j])
@@ -320,50 +189,6 @@ def test(dataloader, model, loss_fn):
     print(f"Validation Avg loss: {test_loss:>0.6f}")
 
     return test_loss, correct
-
-# The training process is conducted over several iterations (epochs). 
-# During each epoch, the model learns parameters to make better predictions. 
-# We print the model’s accuracy and loss at each epoch; we’d like to see the accuracy increase and the loss decrease with every epoch.
-
-# Show the loss curves of training and testing
-# https://blog.csdn.net/weixin_42204220/article/details/86352565   does not work properly
-# pip install tensorboardX
-# from tensorboardX import SummaryWriter
-
-# https://zhuanlan.zhihu.com/p/103630393 , this works
-# 不要安装pytorch profiler, 如果安装了，pip uninstall torch-tb-profiler. 否则tensorboard load 数据有问题
-
-# How To Save and Load Model In PyTorch With A Complete Example
-# https://towardsdatascience.com/how-to-save-and-load-a-model-in-pytorch-with-a-complete-example-c2920e617dee
-#
-# Saving function
-def save_ckp(state, checkpoint_path):
-    """
-    state: checkpoint we want to save
-    checkpoint_path: path to save checkpoint
-    """
-    f_path = checkpoint_path
-    # save checkpoint data to the path given, checkpoint_path
-    torch.save(state, f_path)
-
-# Loading function
-def load_ckp(checkpoint_fpath, model, optimizer):
-    """
-    checkpoint_path: path to save checkpoint
-    model: model that we want to load checkpoint parameters into       
-    optimizer: optimizer we defined in previous training
-    """
-    # load check point
-    checkpoint = torch.load(checkpoint_fpath)
-    # initialize state_dict from checkpoint to model
-    model.load_state_dict(checkpoint['state_dict'])
-    # initialize optimizer from checkpoint to optimizer
-    optimizer.load_state_dict(checkpoint['optimizer'])
-    # initialize valid_loss_min from checkpoint to valid_loss_min
-    val_loss_min = checkpoint['val_loss_min']
-    # return model, optimizer, epoch value, min validation loss 
-    return model, optimizer, checkpoint['epoch'], val_loss_min
-
 
 # show test results and add the figure in writter
 # https://tensorflow.google.cn/tensorboard/image_summaries?hl=zh-cn
@@ -514,9 +339,6 @@ def write_results_txt(results, filename):
 # ==============================================================================================================
 if __name__=='__main__':
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print("Using {} device".format(device))
-
     # Need to calculate the mean and std of the dataset first.
 
     # imageCW, 500x500, g=0.5:0.01:0.95, training number = 70, mean = 0.0050, std = 0.3737
@@ -532,71 +354,95 @@ if __name__=='__main__':
     # imageCW_v4, 500x500, training number = 200, mean = 0.0045, std = 0.3633
     # imageCW_v4_fat, 500x500, training number = 200, mean = 0.0068, std = 0.3823
 
-    img_path = "H:\imageCW_v4"
-    test_img_path = "H:\imageCW_v4_test"
+    img_path = "H:\\imageCW_v4"
+    test_img_path = "H:\\imageCW_v4_test"
     trainDataListFile = "trainDataCW_v4.csv"
     valDataListFile   = "valDataCW_v4.csv"
     testDataListFile  = "testDataCW_v4.csv"
+    tmp_processed_data_dir = "H:\\temp_processed_data"
+    checkpoint_path = 'training_results'
+
+    if not os.path.exists(checkpoint_path):
+        os.mkdir(checkpoint_path)
+    logger = double_logger(log_path=checkpoint_path).getLogger()
+
+    train_labels = pd.read_csv(os.path.join(img_path, trainDataListFile))
+    val_labels   = pd.read_csv(os.path.join(img_path, valDataListFile))
+    test_labels  = pd.read_csv(os.path.join(test_img_path, testDataListFile))
+
     meanPixelVal = 0.0045   # using statistics of all v4 data
     stdPixelVal  = 0.3633
-    minParaVal   = [0.00504, 20.45447, 0.55]    # gt does not need normalization
-    maxParaVal   = [0.00504, 20.45447, 0.95]
+    # minParaVal   = [0.00504, 20.45447, 0.55]    # gt does not need normalization
+    # maxParaVal   = [0.00504, 20.45447, 0.95]
+    preprocessing_transformer = transforms.Normalize(meanPixelVal, stdPixelVal)
 
-    train_transformer = transforms.Compose([transforms.Normalize(meanPixelVal, stdPixelVal),
-                                            transforms.RandomHorizontalFlip(0.5),
+    train_transformer = transforms.Compose([transforms.RandomHorizontalFlip(0.5),
                                             transforms.RandomVerticalFlip(0.5)
     ])
 
-    train_data = CustomImageDataset(
-        annotations_file = os.path.join(img_path, trainDataListFile),
-        img_dir = img_path,
+    temp_train_pickle_file_name = 'train.pkl'
+    temp_val_pickle_file_name   = 'val.pkl'
+    temp_test_pickle_file_name  = 'test.pkl'
+
+    need_preprocessing = False
+    if need_preprocessing:
+        if os.path.exists(tmp_processed_data_dir):
+            shutil.rmtree(tmp_processed_data_dir) 
+        os.makedirs(tmp_processed_data_dir, exist_ok=False)
+
+        logger.debug('Preprocessing... Saving to {}'.format(tmp_processed_data_dir))
+        DataPreprocessor().dump(train_labels, img_path, tmp_processed_data_dir, temp_train_pickle_file_name, preprocessing_transformer)
+        DataPreprocessor().dump(val_labels,   img_path, tmp_processed_data_dir, temp_val_pickle_file_name,   preprocessing_transformer)
+        DataPreprocessor().dump(test_labels,  img_path, tmp_processed_data_dir, temp_test_pickle_file_name,  preprocessing_transformer)
+
+    train_data = CustomImageDataset_Pickle(
+        img_labels = train_labels,
+        file_preprocessed = os.path.join(tmp_processed_data_dir, temp_train_pickle_file_name),
         transform = train_transformer
     )
 
-    val_data = CustomImageDataset(
-        annotations_file = os.path.join(img_path, valDataListFile),
-        img_dir = img_path,
-        transform = transforms.Normalize(meanPixelVal, stdPixelVal)
+    val_data = CustomImageDataset_Pickle(
+        img_labels = val_labels,
+        file_preprocessed = os.path.join(tmp_processed_data_dir, temp_val_pickle_file_name)
     )
 
-    test_data = CustomImageDataset(
-        annotations_file = os.path.join(test_img_path, testDataListFile),
-        img_dir = test_img_path,
-        transform = transforms.Normalize(meanPixelVal, stdPixelVal)
+    test_data = CustomImageDataset_Pickle(
+        img_labels = test_labels,
+        file_preprocessed = os.path.join(tmp_processed_data_dir, temp_test_pickle_file_name)
     )
-
-    # gtNorm = gtNormalize(minParaVal, maxParaVal)
 
     # Create data loaders.
-    batch_size = 100
+    batch_size = 120
     train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=True)
-    val_dataloader   = DataLoader(val_data, batch_size=batch_size, pin_memory=True)
-    test_dataloader  = DataLoader(test_data, batch_size=batch_size, pin_memory=True)
+    val_dataloader   = DataLoader(val_data,   batch_size=batch_size, pin_memory=True)
+    test_dataloader  = DataLoader(test_data,  batch_size=batch_size, pin_memory=True)
+
+    torch.backends.cudnn.benchmark = True
 
     # Define model
-    num_of_Gaussian = 5
+    num_of_Gaussian = 7
     # model = NeuralNetwork().to(device)
     # print(model)
     # from resnet_models import resnet14
-    from resnet import resnet18
-    model = resnet18(pretrained=False, num_classes=num_of_Gaussian*3).to(device)
-    summary(model, (1, 500, 500))
-
-    # loss_fn = nn.MSELoss()
-    theta = np.arange(0, np.pi, 0.01)
-    theta = torch.from_numpy(theta).to(device)
+    # from resnet import resnet18
+    from NetworkModels import Resnet18
+    model = Resnet18(num_classes=num_of_Gaussian*3)
+    model_struct = summary(model, (1, 500, 500), verbose=0)
+    model_struct_str = str(model_struct)
+    logger.info('Model structure:\n {}'.format(model_struct_str))
 
     # optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.9, weight_decay=5e-3)
     optimizer = torch.optim.Adam(model.parameters(), lr=8e-4, weight_decay=5e-3)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
-    start_epoch = 1
+    theta = np.arange(0, np.pi, 0.01)
+    theta = torch.from_numpy(theta).cuda()
+
+    trainer = trainer.Trainer()
+    trainer.run(train_dataloader, val_dataloader, model, loss_fn, optimizer, scheduler, num_epochs=30, model_dir=checkpoint_path)
+
     n_epochs = 30
     val_loss_min = torch.tensor(np.Inf)
-
-    checkpoint_path = 'training_results'
-    if not os.path.exists(checkpoint_path):
-        os.mkdir(checkpoint_path)
 
     checkpoint_file = os.path.join(checkpoint_path, 'current_checkpoint.pt')
     best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
@@ -606,27 +452,16 @@ if __name__=='__main__':
     if resume_training:
         model, optimizer, start_epoch, val_loss_min = load_ckp(checkpoint_file, model, optimizer)
 
-    from torch.utils.tensorboard import SummaryWriter 
-    writer = SummaryWriter(checkpoint_path)
-
+    # writer = SummaryWriter(checkpoint_path)
     since = time.time()
     for epoch in range(start_epoch, n_epochs+1):
-        print(f"Epoch {epoch}")
+        logger.info(f"Epoch {epoch}")
 
         train_loss = train(train_dataloader, model, loss_fn, optimizer)
         val_loss, correct = test(val_dataloader, model, loss_fn)
 
-        writer.add_scalar('Train/Loss', train_loss, epoch)
-        writer.add_scalar('Validation/Loss', val_loss, epoch)
-        # writer.add_scalar('Accuracy: relative error < 10%', 100*correct[0], epoch)
-        # writer.add_scalar('Accuracy: relative error 10-50%', 100*correct[1], epoch)
-        # writer.add_scalar('Accuracy: relative error > 50%', 100*correct[2], epoch)
-
-        figure = show_result_samples(val_data)
-        writer.add_figure('Examples of Validation Results', figure, epoch)
-
         if val_loss < val_loss_min:
-            print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(val_loss_min, val_loss))
+            logger.info('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(val_loss_min, val_loss))
             # save checkpoint as best model
             val_loss_min = val_loss
             is_best = True
@@ -640,25 +475,23 @@ if __name__=='__main__':
         }
 
         # save checkpoint
-        save_ckp(checkpoint, checkpoint_file)
+        checkpoints.save_ckp(checkpoint, checkpoint_file)
         if is_best:
             shutil.copyfile(checkpoint_file, best_model_file)
             is_best = False   
 
         time_elapsed = time.time() - since
-        print('Epoch {:d} complete in {:.0f}h {:.0f}m {:.0f}s \n'.format(epoch, time_elapsed // 3600, (time_elapsed%3600)//60, time_elapsed%60))
+        logger.info('Epoch {:d} complete in {:.0f}h {:.0f}m {:.0f}s \n'.format(epoch, time_elapsed // 3600, (time_elapsed%3600)//60, time_elapsed%60))
 
-    writer.close()
+    # writer.close()
     time_elapsed = time.time() - since
-    print('Training complete in {:.0f}h {:.0f}m {:.0f}s \n'.format(time_elapsed // 3600, (time_elapsed%3600)//60, time_elapsed%60))
+    logger.info('Training complete in {:.0f}h {:.0f}m {:.0f}s \n'.format(time_elapsed // 3600, (time_elapsed%3600)//60, time_elapsed%60))
 
-    # finally, show results of best model
-    model, optimizer, start_epoch, test_loss_min = load_ckp(best_model_file, model, optimizer)
-    
-    # ----- Validation Results --------------------------------------------------------------------
-    
+    # =============================== Test model ======================================
+
+    model, _, _, _ = checkpoints.load_ckp(best_model_file, model, optimizer)
+
     # ***** ATTENSION: must uncomment matplotlib.use("Agg") to save figures *****
-    
     val_results  = show_Results(val_data,  os.path.join(checkpoint_path, 'val_results_figures'), save_figure=True)
     fn_val = os.path.join(checkpoint_path, 'val_results.npy')
     np.save(fn_val, val_results)
