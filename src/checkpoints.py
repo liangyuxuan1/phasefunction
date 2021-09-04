@@ -39,7 +39,8 @@ def load_ckp(checkpoint_fpath, model, optimizer):
     model.load_state_dict(checkpoint['state_dict'])
     # initialize optimizer from checkpoint to optimizer
     optimizer.load_state_dict(checkpoint['optimizer'])
-    # initialize valid_loss_min from checkpoint to valid_loss_min
-    val_loss_min = checkpoint['val_loss_min']
+    # load loss from checkpoint
+    train_loss  = checkpoint['train_loss']
+    val_loss    = checkpoint['val_loss']
     # return model, optimizer, epoch value, min validation loss 
-    return model, optimizer, checkpoint['epoch'], val_loss_min
+    return model, optimizer, checkpoint['epoch'], train_loss, val_loss
