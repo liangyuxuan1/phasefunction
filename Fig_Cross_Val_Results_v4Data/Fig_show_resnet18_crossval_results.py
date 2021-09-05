@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import pandas as pd
 
-files = glob.glob(os.path.join(os.path.dirname(__file__), '*NoG*_2.csv'))
+files = glob.glob(os.path.join(os.path.dirname(__file__), '*.csv'))
 df = pd.DataFrame()
 for file in files:
     df = df.append(pd.read_csv(file), ignore_index=True)
