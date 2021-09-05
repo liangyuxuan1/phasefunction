@@ -17,7 +17,7 @@ FluenceRate 0
 ROI -10 10 -10 10 -2 2 0 10 0 360 0 180
 ROISeparation 0.02 0.02 0.1 1 2 1
 Domain CW
-ThreadNum 16
+ThreadNum 200
 OutermostTissueIndex 1
 AmbientMediumR 1
 MediumShapeTetraType  0
