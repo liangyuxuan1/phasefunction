@@ -1,26 +1,28 @@
 # PyTorch has two primitives to work with data: torch.utils.data.DataLoader and torch.utils.data.Dataset. 
 # Dataset stores the samples and their corresponding labels, and DataLoader wraps an iterable around the Dataset.
 
-from matplotlib.image import BboxImage
 from numpy.core.fromnumeric import mean
 import torch
 from torch import nn
-from torch.nn.modules.activation import Tanh
-from torch.nn.modules.linear import Linear
 from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
-from torchvision import datasets
 from torchvision import transforms
-from torchvision.transforms import ToTensor, Lambda, Compose
 from torch.utils.tensorboard import SummaryWriter 
 
+# pip install torch-summary
+from torchsummary import summary
+
+import logging
+
 # pip install matplotlib
-import matplotlib
 import matplotlib.pyplot as plt
 # matplotlib.use("Agg")
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
+import seaborn as sns
 import numpy as np
-import time
 import shutil
+
+# pip install pandas
+import pandas as pd
 
 # OMP: Error #15: Initializing libiomp5md.dll, but found libiomp5md.dll already initialized.
 import os
@@ -34,12 +36,7 @@ from CustomImageDataset import CustomImageDataset
 import checkpoints
 from logger import double_logger
 import trainer
-
-# pip install torch-summary
-from torchsummary import summary
-
-# pip install pandas
-import pandas as pd
+import tester
 
 class gtNormalize(object):
     def __init__(self, minV, maxV):
@@ -104,7 +101,7 @@ def GMM(nnOut, theta):
         gmm[i,:] /= sumGmm      # normalize to gurrantee the sum=1
     return gmm
 
-def loss_fn(prediction, gt):
+def loss_func_mse(prediction, gt):
     gmm = GMM(prediction, theta)
     
     # gx = gtNorm.restore(gt.to("cpu"))
@@ -375,6 +372,7 @@ if __name__=='__main__':
     # minParaVal   = [0.00504, 20.45447, 0.55]    # gt does not need normalization
     # maxParaVal   = [0.00504, 20.45447, 0.95]
     preprocessing_transformer = transforms.Normalize(meanPixelVal, stdPixelVal)
+    inverse_preprocessing_transformer = transforms.Normalize(-meanPixelVal, 1.0/stdPixelVal)
 
     train_transformer = transforms.Compose([transforms.RandomHorizontalFlip(0.5),
                                             transforms.RandomVerticalFlip(0.5)
@@ -438,54 +436,24 @@ if __name__=='__main__':
     theta = np.arange(0, np.pi, 0.01)
     theta = torch.from_numpy(theta).cuda()
 
-    trainer = trainer.Trainer()
-    trainer.run(train_dataloader, val_dataloader, model, loss_fn, optimizer, scheduler, num_epochs=30, model_dir=checkpoint_path)
+    need_train = False
+    if need_train:
+        Trn = trainer.Trainer()
+        bestmodel_name = 'best_model_1' 
+        logger.info(f'Training {bestmodel_name}\n')
+        df_loss = Trn.run(train_dataloader, val_dataloader, model, loss_func_mse, optimizer, scheduler, num_epochs=30, 
+                                model_dir=checkpoint_path, model_name=bestmodel_name)
+        df_loss.to_csv(os.path.join(checkpoint_path, bestmodel_name+'_loss.csv'), index=False)
 
-    n_epochs = 30
-    val_loss_min = torch.tensor(np.Inf)
+        plt.subplots(figsize=(8,4))
+        sns.lineplot(data=df_loss, x='Epoch', y='Error', hue='Events')
+        figFile = os.path.join(checkpoint_path, f'{bestmodel_name}_loss.png')
+        plt.savefig(figFile, bbox_inches='tight')
+        plt.close()
 
-    checkpoint_file = os.path.join(checkpoint_path, 'current_checkpoint.pt')
-    best_model_file = os.path.join(checkpoint_path, 'best_model.pt')
-    is_best = False
-
-    resume_training = False
-    if resume_training:
-        model, optimizer, start_epoch, val_loss_min = load_ckp(checkpoint_file, model, optimizer)
-
-    # writer = SummaryWriter(checkpoint_path)
-    since = time.time()
-    for epoch in range(start_epoch, n_epochs+1):
-        logger.info(f"Epoch {epoch}")
-
-        train_loss = train(train_dataloader, model, loss_fn, optimizer)
-        val_loss, correct = test(val_dataloader, model, loss_fn)
-
-        if val_loss < val_loss_min:
-            logger.info('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(val_loss_min, val_loss))
-            # save checkpoint as best model
-            val_loss_min = val_loss
-            is_best = True
-
-        # create checkpoint variable and add important data
-        checkpoint = {
-            'epoch': epoch + 1,
-            'val_loss_min': val_loss_min,
-            'state_dict': model.state_dict(),
-            'optimizer': optimizer.state_dict(),
-        }
-
-        # save checkpoint
-        checkpoints.save_ckp(checkpoint, checkpoint_file)
-        if is_best:
-            shutil.copyfile(checkpoint_file, best_model_file)
-            is_best = False   
-
-        time_elapsed = time.time() - since
-        logger.info('Epoch {:d} complete in {:.0f}h {:.0f}m {:.0f}s \n'.format(epoch, time_elapsed // 3600, (time_elapsed%3600)//60, time_elapsed%60))
-
-    # writer.close()
-    time_elapsed = time.time() - since
-    logger.info('Training complete in {:.0f}h {:.0f}m {:.0f}s \n'.format(time_elapsed // 3600, (time_elapsed%3600)//60, time_elapsed%60))
+    tst = tester.Tester()
+    test_results = tst.run(test_data, model, loss_func_mse, checkpoint_path, 'best_model_1.pt', inverse_preprocessing_transformer)
+    test_results.to_csv(os.path.join(checkpoint_path, bestmodel_name+'_test_results.csv'), index=False)
 
     # =============================== Test model ======================================
 
