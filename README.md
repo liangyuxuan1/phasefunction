@@ -140,7 +140,7 @@ Fig. 8. Rate of samples with relative error greater than 50%
 
 The results demonstrate that, first of all, the training procedure converges (Fig. 5, Fig. 6), and the network learns to predict the optical parameters. The prediction accuracy improves as the learning process proceeds, as shown by the increasing rate of small relative error samples (Fig. 7) and decreasing rate of large relative error samples (Fig. 8).  
 
-### Step 4: Estimation the Phase Function together with the optical parameters (Model-2)
+### Step 4: Estimation of the Phase Function together with the optical parameters (Model-2)
 
 Since the objective of this study is to estimate the phase function directly from the observations, Model-1 is modified to estimate the phase function together with $u_a$ and $u_s$. The diagram of the model (Model-2) is shown in Fig. 9. The Gaussian Mixture Model (GMM) is used to fit the phase function. The FC layer estimates the parameters of the Gaussian kernels including the weight $w_i$, the mean $m_i$, and the standard deviation $\sigma_i$, $i=1,\dots,N$, where $N$ is the number of Gaussian kernels, which is set to 10 in the following experiments. Therefore the outputs of the FC layer consists of $N\times 3$ neurons for Gaussian kernel estimation and 2 neurons for $u_a$ and $u_s$ estimation. 
 
@@ -202,3 +202,25 @@ Fig. 15. Test errors of Model-2
 The phase error tends to decrease as the number of non-zero pixels increases, indicating that more information in the image contributes to learning. However, the valleys (small errors) in the phase error plot suggest that the number of non-zero pixels may not be the only factor in accurate learning. The estimation error of $u_s$ has a similar trend to that of the phase function, but the estimation error of $u_a$ increases with the number of non-zero pixels. 
 
 The above results demonstrate that estimation of the phase function together simultaneously with the optical parameters $u_a$ and $u_s$ is a difficult problem. The complexity comes from the fact that the three factors are integrated when generating the images and training the neural network, as the loss of phase is added to the loss of $u_a$ and $u_s$. Another possibility is that the parameter range varies widely and  in an enumerated manner, which may generate unrealistic materials.
+
+### Step 5: Fix $u_a$ and $u_s$ and estimate the Phase Function only (network model: ResNet18)
+
+To simplify the problem, I tried a lot of things.
+
+- Dataset v4: Fix $u_a$ and $u_s$ by using the tissue parameters in Ren Shenghan's paper (PloS One, 2013), and vary $g$ from 0.55 to 0.95 with step size 0.1.
+- Change the network model to ResNet18, add a sigmoid layer after the final FC layer.
+- Select the optimal number of Gaussian components (NoG) via cross-validation, AIC and BIC. For cross-validation, the scheme is non-standard 5-fold cross-validation because for each run, I leave one $g$ value out for validation and use the other 4 $g$ values for training. 
+- Speed up the code by serializing the data using Pickle. 
+
+AIC and BIC are not suitable for my problem because they always prefer the smallest NoG, i.e., the smallest model. 
+
+As for cross-validation, the results are not stable. The optimal NoG=7 or 9, suggested by two runs. 
+
+### Step 6: Another cross-validation scheme
+
+- Dataset v5: fix all the parameter of $u_a$, $u_s$ and $g$.
+- For each parameter set, more data are generated (1000 each).
+- Cross-validation scheme: leave-one-tissue-out
+
+
+### Stop coding and start reading papers, design a better experiment design...
