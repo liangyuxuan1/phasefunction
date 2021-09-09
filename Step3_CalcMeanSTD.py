@@ -46,9 +46,9 @@ class CustomImageDataset(Dataset):
         return image, gt
 
 
-img_path="imageCW_v3"
+img_path="imageCW_v5"
 training_data = CustomImageDataset(
-    annotations_file = os.path.join(img_path, "trainDataCW_v3_ExcludeExtremes_PositiveG.csv"),
+    annotations_file = os.path.join(img_path, "DataListCW_v5.csv"),
     img_dir = img_path
 )
 
