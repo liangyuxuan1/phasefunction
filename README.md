@@ -214,13 +214,38 @@ To simplify the problem, I tried a lot of things.
 
 AIC and BIC are not suitable for my problem because they always prefer the smallest NoG, i.e., the smallest model. 
 
-As for cross-validation, the results are not stable. The optimal NoG=7 or 9, suggested by two runs. 
+As for cross-validation, the results are not stable. Of three runs, two gave the best NoG=9 and one gave the best NoG=7.  
+
+<div align=center>
+<img src="figures/Fig_Cross_Val_DataV4_1.png" width="70%" />
+
+Fig. 16. Cross-validation results on Dataset V4, run 1. Best NoG=7.
+</div>
+
+<div align=center>
+<img src="figures/Fig_Cross_Val_DataV4_2.png" width="70%" />
+
+Fig. 17. Cross-validation results on Dataset V4, run 2. Best NoG=9.
+</div>
+
+<div align=center>
+<img src="figures/Fig_Cross_Val_DataV4_3.png" width="70%" />
+
+Fig. 18. Cross-validation results on Dataset V4, run 3. Best NoG=9.
+</div>
 
 ### Step 6: Another cross-validation scheme
 
 - Dataset v5: fix all the parameter of $u_a$, $u_s$ and $g$.
 - For each parameter set, more data are generated (1000 each).
 - Cross-validation scheme: leave-one-tissue-out
+
+
+<div align=center>
+<img src="figures/Fig_Cross_Val_DataV5_1.png" width="70%" />
+
+Fig. 19. Cross-validation results on Dataset V5, run 1. Best NoG=8.
+</div>
 
 
 ### Stop coding and start reading papers, design a better experiment design...
