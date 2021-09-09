@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import pandas as pd
 
-files = glob.glob(os.path.join(os.path.dirname(__file__), '*NoG*_2.csv'))
+files = glob.glob(os.path.join(os.path.dirname(__file__), 'Cross_validation_DataV5_Run_1', '*.csv'))
 df = pd.DataFrame()
 for file in files:
     df = df.append(pd.read_csv(file), ignore_index=True)
@@ -112,7 +112,8 @@ figFile = os.path.join(os.path.dirname(__file__), 'Fig_Cross_Val.png')
 plt.savefig(figFile, bbox_inches='tight')
 plt.show()
 
-ds = df.groupby(['NoG', 'Events'])
+df2 = df[df['Events']=='Validation']
+ds = df2.groupby(['NoG', 'Events'])
 print(ds.mean()['Error'])
 
 
